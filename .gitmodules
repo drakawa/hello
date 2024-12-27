@@ -1,0 +1,3 @@
+[submodule "hello/at25"]
+	path = hello/at25
+	url = github:drakawa/at25.git
