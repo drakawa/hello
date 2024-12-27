@@ -3,3 +3,5 @@
 assets/external/
 *.py[cod]
 __pycache__/
+assets/
+uploaded_files/
