@@ -464,7 +464,7 @@ def index() -> rx.Component:
         #     disabled=PanelsState.deny_player_button.bool(),
         # ),
         # myaudio(),
-        rx.grid(
+        rx.hstack(
             rx.foreach(
                 PanelsState.audios,
                 lambda a, i: rx.audio(
@@ -472,10 +472,12 @@ def index() -> rx.Component:
                     # url=PanelsState.audios[i].to_string(),
                     url=rx.get_upload_url(a.to_string(use_json=False)),
                     controls=False,
+                    width="10px",
+                    height="10px",
                     playing=PanelsState.playing[i].bool(),
                 ),
             ),
-        )
+        ),
         # rx.foreach(
         #     rx.Var.range(n_panels),
         #     lambda i: rx.audio(
