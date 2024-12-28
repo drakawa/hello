@@ -4,43 +4,38 @@ import reflex as rx
 from rxconfig import config
 from typing import List, Tuple
 import asyncio
+import os
+import pathlib
+import at25
+from at25 import WALL, FIRST, CHANCE, EMPTY, DEALER
 
 udir = rx.get_upload_dir()
 print(udir, type(udir))
 
-filename = "red.wav"
-import os
-import pathlib
-print(os.getcwd())
-filepath = pathlib.Path(os.path.join("./assets", filename))
-print(filepath, type(filepath))
-upload_path = pathlib.Path(os.path.join(udir, filename))
-print(upload_path, type(upload_path))
-with open(filepath, "rb") as f:
-    fileb = f.read()
-    upload_path.write_bytes(fileb)
+conf_yaml = "config_default.yaml"
+conf_path = os.path.join(udir, "config_default.yaml")
+save_path = os.path.join(udir, "csvs")
+game = at25.Attack25(conf_path, save_path)
 
-EMPTY = 0
-WALL = -1
-FIRST = -2
+print("FROM AT25")
+print(game.get_player_names())
+print(game.get_player_colors())
+
 RED = 1
 GREEN = 2
 WHITE = 3
 BLUE = 4
 
 COLORS = {
-    EMPTY: "gray", 
-    WALL: "black", 
-    FIRST: "gray", 
+    EMPTY: "#7F7F7FFF", 
+    WALL: "#000000FF", 
+    FIRST: "#7F7F7FFF", 
+    CHANCE: "#FFFF00FF",
+}
+COLORS = COLORS | game.get_player_colors()
+PLAYERS = game.get_player_ids()
+n_players = game.get_n_players()
 
-    RED: "red", 
-    GREEN: "green",
-    WHITE: "white",
-    BLUE: "blue",
-    }
-
-PLAYERS = [RED, WHITE]
-n_players = len(PLAYERS)
 class ForeachPlayerState(rx.State):
     players: list[int] = PLAYERS
 
