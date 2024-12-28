@@ -70,30 +70,46 @@ font_height = height // 2
 panels_list = list(range(n_panels))
 
 class PanelsState(rx.State):
-    player = EMPTY
+    player: int = EMPTY
     panels = [EMPTY for _ in range(n_panels)]
+    denied_panels = [True for _ in range(n_panels)]
     colors = [COLORS[panel] for panel in panels]
-    audios = [pathlib.Path('red.wav') for _ in range(n_panels)]
+    audios = [pathlib.Path('color1.wav') for _ in range(n_panels)]
     playing = [False for _ in range(n_panels)]
     points = {p: 0 for p in PLAYERS}
+    after_at_chance = False
 
     deny_player_button = False
-    deny_panel_button = True
+    # deny_panel_button = True
     # white_playing = [False for _ in range(n_panels)]
     # red_playing = [False for _ in range(n_panels)]
 
     @rx.event
     def set_player(self, p):
         self.player = p
+
         if p in PLAYERS:
             self.deny_player_button = False
-            self.deny_panel_button = False
+            for i in range(n_panels):
+                self.denied_panels[i-1] = True
+            selectable_panels = game.get_selectable_panels(p)
+            for i in selectable_panels:
+                self.denied_panels[i] = False
+            for i in range(n_panels):
+                self.audios[i] = AUDIOFILES[self.player]
+            # get selectable panels from game
+            print("from set_player: selectable panels:", 
+                  [int(i + 1) for i in selectable_panels])
+            # set denied panels
             print("from set_player: current player:", self.player)
+            print(self.denied_panels)
+        elif p == DEALER:
+            # move to select winner
+            pass
         else:
             self.deny_player_button = False
-            self.deny_panel_button = True
-            print("from set_player: current player:", self.player)
-
+            for i in range(n_panels):
+                self.denied_panels[i] = True
 
     @rx.event
     async def set_panel(self, panel_idx):
@@ -101,12 +117,14 @@ class PanelsState(rx.State):
             return
         
         self.deny_player_button = True
-        self.deny_panel_button = True
+        # self.deny_panel_button = True
+        for i in range(n_panels):
+            self.denied_panels[i] = True
         yield
 
         for i in range(panel_idx, n_panels):
             self.panels[i] = self.player
-            self.audios[i] = AUDIOFILES[self.player]
+            # self.audios[i] = AUDIOFILES[self.player]
             self.colors[i] = COLORS[self.player]
             self.playing[i] = True
             for p in PLAYERS:
@@ -122,10 +140,15 @@ class PanelsState(rx.State):
         for i in range(n_panels):
             self.playing[i] = False
         self.player = EMPTY
+        yield
 
         self.deny_player_button = False
-        self.deny_panel_button = True
+        # self.deny_panel_button = True
+        for i in range(n_panels):
+            self.denied_panels[i] = True
         yield
+
+        ## IF ATCHANCE, RING BELL
         print("from set_panel: current player:", self.player)
 
 print(PanelsState.audios[0].to_string())
@@ -217,64 +240,90 @@ class VisibleState(rx.State):
     def toggle_visibility(self):
         self.is_visible = not self.is_visible
 
-        
+z_ripple = 100
+z_panels = 5
+
 def myripple():
     return {
                 "@keyframes ripple": {
-                "0%": {"box-shadow": "0 0 0 0 #1B85FB"},
-                "70%": {"box-shadow": "0 0 0 20px rgb(27 133 251 / 0%)"},
-                "100%": {"box-shadow": "0 0 0 0 rgb(27 133 251 / 0%)"},
+                "0%": {"box-shadow": f"0 0 0 0 #FFC700FF"},
+                "70%": {"box-shadow": f"0 0 0 20px #FFC70000"},
+                "100%": {"box-shadow": f"0 0 0 0 #FFC70000"},
                 },
-                "animation": "ripple 2s infinite"
+                "animation": "ripple 2s infinite",
+                "z-index": z_ripple,
             }
+def mydefaultborder(color):
+    return {"border": f"1vh solid {color}"}
+
+def myblinkborder(color):
+    return {
+                f"@keyframes blinkBorder{color[1:]}": {
+                "0%": {"border": f"1vh solid {color}"},
+                "100%": {"border": f"1vh solid {color[:-2]}00"},
+                },
+                "animation": f"blinkBorder{color[1:]} 0.5s ease infinite alternate"
+            }
+
+# @keyframes blinkBorder {
+#   0% {
+#     border: 6px solid #cc2200;
+#   }
+#   100% {
+#     border: 6px solid #efefef;
+#   }
+# }
+# .btn {
+#   animation: blinkBorder 1s ease infinite alternate;
+# }
 
 def index() -> rx.Component:
     return rx.vstack(
-        counter(),
+        # counter(),
 
-        rx.button(
-            "Button Text",
-            background_color="transparent"
-        ),
+        # rx.button(
+        #     "Button Text",
+        #     background_color="transparent"
+        # ),
 
-        # Using rgba with 0 opacity
-        rx.button(
-            "Button Text", 
-            background_color="rgba(0,0,0,0)"
-        ),
-        rx.vstack(
-                rx.button("Toggle", on_click=VisibleState.toggle_visibility),
-                rx.cond(
-                    VisibleState.is_visible,
-                    rx.button("Hidden Button"),  # Shown when is_visible is True
-                    rx.text(""),  # Shown when is_visible is False
-                ),
-        ),
-        rx.box(
-            "Animated Content",
-            style={
-                "@keyframes example": {
-                    "0%": {"opacity": 0},
-                    "100%": {"opacity": 1}
-                },
-                "animation": "example 2s infinite"
-            },
-            _hover=myripple()
-        ),
-        rx.flex(
-            rx.grid(
-                rx.foreach(
-                    rx.Var.range(9),
-                    lambda i: rx.button(
-                        f"{i + 1}", 
-                    ),
-                ),
-                columns="3",
-                spacing="0",
-                width="90%",
-                z_index=5,
-            ),
-        ),
+        # # Using rgba with 0 opacity
+        # rx.button(
+        #     "Button Text", 
+        #     background_color="rgba(0,0,0,0)"
+        # ),
+        # rx.vstack(
+        #         rx.button("Toggle", on_click=VisibleState.toggle_visibility),
+        #         rx.cond(
+        #             VisibleState.is_visible,
+        #             rx.button("Hidden Button"),  # Shown when is_visible is True
+        #             rx.text(""),  # Shown when is_visible is False
+        #         ),
+        # ),
+        # rx.box(
+        #     "Animated Content",
+        #     style={
+        #         "@keyframes example": {
+        #             "0%": {"opacity": 0},
+        #             "100%": {"opacity": 1}
+        #         },
+        #         "animation": "example 2s infinite"
+        #     },
+        #     _hover=myripple("#00FF00FF")
+        # ),
+        # rx.flex(
+        #     rx.grid(
+        #         rx.foreach(
+        #             rx.Var.range(9),
+        #             lambda i: rx.button(
+        #                 f"{i + 1}", 
+        #             ),
+        #         ),
+        #         columns="3",
+        #         spacing="0",
+        #         width="90%",
+        #         z_index=5,
+        #     ),
+        # ),
         rx.button(
             "Hover Me to set video",
              _hover={
@@ -310,14 +359,13 @@ def index() -> rx.Component:
                         font_size=rx.Var.to_string(font_height)+ "vh",
                         text_align="center",
                         on_click=PanelsState.set_panel(i),
-                        disabled=PanelsState.deny_panel_button.bool(),
-
+                        disabled=PanelsState.denied_panels[i].bool(),
                     ),
                 ),
                 columns=rx.Var.to_string(n_col),
                 spacing="0",
                 width=rx.Var.to_string(panels_width) + "vh",
-                z_index=5,
+                z_index=z_panels,
             ),
             rx.cond(
                 BackgroundState.bg == BG_HIDDEN,
@@ -370,15 +418,15 @@ def index() -> rx.Component:
             #     on_ended=VideoPlayingState.stop_playing(),
             #     # z_index=20,
             # ),
-            rx.box(
-                width=rx.Var.to_string(panels_width) + "vh",
-                height=rx.Var.to_string(panels_height) + "vh",
-                background_color="transparent",
-                position="absolute",
-                # top="40px",
-                # left="40px",
-                z_index=2,
-            ),
+            # rx.box(
+            #     width=rx.Var.to_string(panels_width) + "vh",
+            #     height=rx.Var.to_string(panels_height) + "vh",
+            #     background_color="transparent",
+            #     position="absolute",
+            #     # top="40px",
+            #     # left="40px",
+            #     z_index=2,
+            # ),
             # rx.box(
             #     width="90%",
             # ),
@@ -390,10 +438,25 @@ def index() -> rx.Component:
                 ForeachPlayerState.players,
                 lambda i: rx.button(
                     PanelsState.points[i].to_string(use_json=False),
-                    border_style="solid",
-                    border_width="1vh",
-                    border_color=ColorsState.colors[i],
-                    _enabled=myripple(),
+                    # border_style="solid",
+                    # border_width="1vh",
+                    # border_color=ColorsState.colors[i],
+                    # _enabled=[
+                    #     myripple(),
+                    #     myblinkborder(ColorsState.colors[i]),
+                    # ],
+                    # style=myblinkborder(ColorsState.colors[i]),
+                    # rx.cond(
+                    # PanelsState.player == i,
+#                   style=mydefaultborder(ColorsState.colors[i]),
+                    #)
+                    # style=mydefaultborder(ColorsState.colors[i]),
+                    style=rx.cond(
+                        PanelsState.player == i,
+                        myblinkborder(ColorsState.colors[i]),
+                        mydefaultborder(ColorsState.colors[i]),
+                    ),
+                    # _enabled=myblinkborder(ColorsState.colors[i]),
                     height=rx.Var.to_string(height)+ "vh",
                     width=rx.Var.to_string(height)+ "vh",
                     background_color="black",
