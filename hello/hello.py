@@ -49,41 +49,25 @@ AUDIOFILES = {
     EMPTY: "gray.wav", 
     WALL: "gray.wav", 
     FIRST: "gray.wav", 
-    RED: "red.wav", 
-    GREEN: "green.wav", 
-    WHITE: "white.wav",
-    BLUE: "blue.wav",
+    # RED: "color1.wav", 
+    # GREEN: "color2.wav", 
+    # WHITE: "color3.wav",
+    # BLUE: "color4.wav",
     }
+AUDIOFILES = AUDIOFILES | {i: f"color{i}.wav" for i in PLAYERS}
 
-n_col = 5
-n_row = 5
-height = 15
+n_row = game.get_n_row()
+n_col = game.get_n_col()
 
-n_panels =  n_col * n_row
-width = height * (16 / 9)
+panels_height = 75
+panels_width = panels_height * (16 / 9)
+
+height = panels_height / n_row
+width = panels_width / n_col
+n_panels =  n_row * n_col
 font_height = height // 2
-panels_height = n_col * height
-panels_width = n_row * width
-
 
 panels_list = list(range(n_panels))
-import random
-random.seed(1)
-random.shuffle(panels_list)
- 
-def get_audioidx(i, color):
-    if i not in range(n_panels):
-        return None
-    if color in {EMPTY, WALL, FIRST}:
-        return None
-    return i + (color - 1) * n_panels
-
-class PointsState(rx.State):
-    points = {p: 0 for p in PLAYERS}
-
-    @rx.event
-    def set_point(self, player, point):
-        self.points[player] = point
 
 class PanelsState(rx.State):
     player = EMPTY
