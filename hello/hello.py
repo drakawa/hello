@@ -70,14 +70,14 @@ font_height = height // 2
 panels_list = list(range(n_panels))
 
 class PanelsState(rx.State):
-    player: int = EMPTY
     panels = [EMPTY for _ in range(n_panels)]
+    points = {p: 0 for p in PLAYERS}
+
+    player: int = EMPTY
     denied_panels = [True for _ in range(n_panels)]
     colors = [COLORS[panel] for panel in panels]
     audios = [pathlib.Path('color1.wav') for _ in range(n_panels)]
     playing = [False for _ in range(n_panels)]
-    points = {p: 0 for p in PLAYERS}
-    after_at_chance = False
 
     deny_player_button = False
     # deny_panel_button = True
@@ -122,21 +122,31 @@ class PanelsState(rx.State):
             self.denied_panels[i] = True
         yield
 
-        for i in range(panel_idx, n_panels):
-            self.panels[i] = self.player
-            # self.audios[i] = AUDIOFILES[self.player]
-            self.colors[i] = COLORS[self.player]
-            self.playing[i] = True
-            for p in PLAYERS:
-                self.points[p] = self.panels.count(p)
-            yield
-            await asyncio.sleep(0.5)
-            print("changed_panel:", i + 1)
-            print("from playing:", self.playing)
-            print("from set_panel:", panel_idx)
-            print(self.audios)
-        await asyncio.sleep(2.0)
+        selectable_panels = game.get_selectable_panels(self.player)
+        if panel_idx not in selectable_panels:
+            print("from set_panel: unselectable: ", panel_idx)
 
+        else:
+            panels_to_flip = game.to_get_panels(panel_idx, self.player)
+            for i in panels_to_flip:
+                self.panels[i] = self.player
+                # self.audios[i] = AUDIOFILES[self.player]
+                self.colors[i] = COLORS[self.player]
+                self.playing[i] = True
+                for p in PLAYERS:
+                    self.points[p] = self.panels.count(p)
+                yield
+                await asyncio.sleep(0.5)
+                print("changed_panel:", i + 1)
+                print("from playing:", self.playing)
+                print("from set_panel:", panel_idx)
+                print(self.audios)
+            await asyncio.sleep(2.0)
+
+            ## IF NOW IS ATCHANCE, SET CHANCE PANEL
+            if game.is_atchance():
+                pass
+                #todo
         for i in range(n_panels):
             self.playing[i] = False
         self.player = EMPTY
@@ -147,8 +157,7 @@ class PanelsState(rx.State):
         for i in range(n_panels):
             self.denied_panels[i] = True
         yield
-
-        ## IF ATCHANCE, RING BELL
+        ## IF NEXT IS ATCHANCE, RING BELL
         print("from set_panel: current player:", self.player)
 
 print(PanelsState.audios[0].to_string())
@@ -249,6 +258,8 @@ def myripple():
                 "0%": {"box-shadow": f"0 0 0 0 #FFC700FF"},
                 "70%": {"box-shadow": f"0 0 0 20px #FFC70000"},
                 "100%": {"box-shadow": f"0 0 0 0 #FFC70000"},
+                # "z-index": z_ripple,
+                # "position": "relative",
                 },
                 "animation": "ripple 2s infinite",
                 "z-index": z_ripple,
@@ -264,6 +275,17 @@ def myblinkborder(color):
                 },
                 "animation": f"blinkBorder{color[1:]} 0.5s ease infinite alternate"
             }
+def myblinkcolor(color):
+    return {
+                f"@keyframes blinkColor{color[1:]}": {
+                "0%": {"color": f"{color}"},
+                "30%": {"color": f"{color}"},
+                "100%": {"color": "#000000FF"},
+                },
+                "animation": f"blinkColor{color[1:]} 1s ease infinite"
+            }
+def mydefaultcolor(color):
+    return {"color": f"{color}"}
 
 # @keyframes blinkBorder {
 #   0% {
@@ -350,8 +372,17 @@ def index() -> rx.Component:
                     rx.Var.range(n_panels),
                     lambda i: rx.button(
                         f"{i + 1}", 
-                        color="black",
-                        _enabled=myripple(),
+                        # color="black",
+                        style=rx.cond(
+                            PanelsState.denied_panels[i],
+                            mydefaultcolor("#000000FF"),
+                            myblinkcolor(ColorsState.colors[PanelsState.player]),
+                        ),
+                        # _enabled=myblinkcolor(),
+                        radius="none",
+                        border_style="solid",
+                        border_width="0.3vh",
+                        border_color="#000000FF",
                         height=rx.Var.to_string(height)+ "vh",
                         background_color=PanelsState.colors[i],
                         # background_color="transparent",
@@ -360,12 +391,12 @@ def index() -> rx.Component:
                         text_align="center",
                         on_click=PanelsState.set_panel(i),
                         disabled=PanelsState.denied_panels[i].bool(),
+                        z_index=z_panels,
                     ),
                 ),
                 columns=rx.Var.to_string(n_col),
                 spacing="0",
                 width=rx.Var.to_string(panels_width) + "vh",
-                z_index=z_panels,
             ),
             rx.cond(
                 BackgroundState.bg == BG_HIDDEN,
