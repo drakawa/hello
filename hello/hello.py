@@ -87,8 +87,11 @@ class GameState(rx.State):
 
     # 25
     denied_panels = [True for _ in range(n_panels)]
-    audios = ["" for _ in range(n_panels)]
-    playing = [False for _ in range(n_panels)]
+
+    # hard_coded
+    n_audios = 7
+    audios = ["" for _ in range(n_audios)]
+    playing = [False for _ in range(n_audios)]
 
     # 4 FIXED?
     player_names: dict[int, str] = game_player_names
@@ -114,9 +117,9 @@ class GameState(rx.State):
             self.panel_colors[i] = self.COLORS[panel]
         for i in range(self.n_panels):
             self.denied_panels[i] = True
+        for i in range(self.n_audios):
             self.audios[i] = ""
             self.playing[i] = False
-
         self.player = EMPTY
         self.winner = EMPTY
         self.deny_player_button = False
@@ -138,7 +141,7 @@ class GameState(rx.State):
             selectable_panels = self.game_state.game.get_selectable_panels(p)
             for i in selectable_panels:
                 self.denied_panels[i] = False
-            for i in range(self.n_panels):
+            for i in range(self.n_audios):
                 self.audios[i] = self.AUDIOFILES[self.player]
             # get selectable panels from game
             print("from set_player: selectable panels:", 
@@ -198,11 +201,13 @@ class GameState(rx.State):
             else:
                 is_at_chance = self.game_state.game.is_atchance()
                 panels_to_flip = self.game_state.game.to_get_panels(panel_idx, self.player)
-                for i in panels_to_flip:
+                for a_i, i in enumerate(panels_to_flip):
                     self.panels[i] = self.player
                     # self.audios[i] = AUDIOFILES[self.player]
                     self.panel_colors[i] = self.COLORS[self.player]
-                    self.playing[i] = True
+                    self.playing[a_i % self.n_audios] = False
+                    yield
+                    self.playing[a_i % self.n_audios] = True
                     for p in self.PLAYERS:
                         self.points[p] = self.panels.count(p)
                     yield
@@ -223,7 +228,7 @@ class GameState(rx.State):
                     return
                     #todo
 
-        for i in range(self.n_panels):
+        for i in range(self.n_audios):
             self.playing[i] = False
         self.player = EMPTY
         yield
