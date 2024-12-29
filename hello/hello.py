@@ -7,7 +7,7 @@ import asyncio
 import os
 import pathlib
 import at25
-from at25 import WALL, FIRST, CHANCE, EMPTY, DEALER
+from at25 import WALL, FIRST, CHANCE, EMPTY, DELETED, DEALER
 
 udir = rx.get_upload_dir()
 print(udir, type(udir))
@@ -68,21 +68,69 @@ n_panels =  n_row * n_col
 font_height = height // 2
 
 panels_list = list(range(n_panels))
+game_player_names = game.get_player_names()
+
+class SelectState(rx.State):
+    value: str = ""
+    choices: list[str] = sorted((rx.get_upload_dir() / pathlib.Path(("csvs"))).glob('*.csv'))
+    @rx.event
+    def change_value(self, value: str):
+        """Change the select value var."""
+        self.value = value
+        print("from change value: ", self.value)
+
+    @rx.event
+    def load_game_state(self):
+        game.load_state(self.value)
+        print(game.board.board)
 
 class PanelsState(rx.State):
+    # 25 # game states
     panels = [EMPTY for _ in range(n_panels)]
     points = {p: 0 for p in PLAYERS}
-
-    player: int = EMPTY
-    denied_panels = [True for _ in range(n_panels)]
     colors = [COLORS[panel] for panel in panels]
-    audios = [pathlib.Path('color1.wav') for _ in range(n_panels)]
+    visible = ["visible" for _ in range(n_panels)]
+
+    # 25
+    denied_panels = [True for _ in range(n_panels)]
+    audios = ["" for _ in range(n_panels)]
     playing = [False for _ in range(n_panels)]
 
+    # 4 FIXED?
+    player_names: dict[int, str] = game_player_names
+
+    # 1
+    player: int = EMPTY
+    winner: int = EMPTY
     deny_player_button = False
+    set_at_chance = False
     # deny_panel_button = True
     # white_playing = [False for _ in range(n_panels)]
     # red_playing = [False for _ in range(n_panels)]
+
+    @rx.event
+    def load_state(self):
+        tmp_panels = game.get_board_panels()
+        for i in range(n_panels):
+            self.panels[i] = tmp_panels[i]
+        for p in PLAYERS:
+            self.points[p] = self.panels.count(p)
+        for i, panel in enumerate(self.panels):
+            self.colors[i] = COLORS[panel]
+        for i in range(n_panels):
+            self.denied_panels[i] = True
+            self.audios[i] = ""
+            self.playing[i] = False
+
+        self.player = EMPTY
+        self.winner = EMPTY
+        self.deny_player_button = False
+        self.set_at_chance = False
+
+
+    def set_winner(self, i):
+        self.winner = i
+        print("from set_winner: winner:", i, self.player_names[i])
 
     @rx.event
     def set_player(self, p):
@@ -112,41 +160,74 @@ class PanelsState(rx.State):
                 self.denied_panels[i] = True
 
     @rx.event
+    async def delete_panels(self):
+        if self.winner not in PLAYERS:
+            return
+        panels_to_delete = game.get_player_panels(self.winner)
+        for i in panels_to_delete:
+            self.visible[i] = "collapse"
+            yield
+            await asyncio.sleep(0.5)
+            print("changed_panel:", i + 1)
+        await asyncio.sleep(2.0)
+        
+    @rx.event
     async def set_panel(self, panel_idx):
         if self.player not in PLAYERS:
             return
-        
-        self.deny_player_button = True
-        # self.deny_panel_button = True
-        for i in range(n_panels):
-            self.denied_panels[i] = True
-        yield
 
-        selectable_panels = game.get_selectable_panels(self.player)
-        if panel_idx not in selectable_panels:
-            print("from set_panel: unselectable: ", panel_idx)
+        elif self.set_at_chance:
+            print("atchance")
+            for i in range(n_panels):
+                self.denied_panels[i] = True
+            yield
+            self.panels[panel_idx] = CHANCE
+            self.colors[panel_idx] = COLORS[CHANCE]
+            game.set_at_chance(panel_idx)
+            for p in PLAYERS:
+                self.points[p] = self.panels.count(p)
+            self.set_at_chance = False
+            # await asyncio.sleep(0.5)
 
         else:
-            panels_to_flip = game.to_get_panels(panel_idx, self.player)
-            for i in panels_to_flip:
-                self.panels[i] = self.player
-                # self.audios[i] = AUDIOFILES[self.player]
-                self.colors[i] = COLORS[self.player]
-                self.playing[i] = True
-                for p in PLAYERS:
-                    self.points[p] = self.panels.count(p)
-                yield
-                await asyncio.sleep(0.5)
-                print("changed_panel:", i + 1)
-                print("from playing:", self.playing)
-                print("from set_panel:", panel_idx)
-                print(self.audios)
-            await asyncio.sleep(2.0)
+            self.deny_player_button = True
+            # self.deny_panel_button = True
+            for i in range(n_panels):
+                self.denied_panels[i] = True
+            yield
 
-            ## IF NOW IS ATCHANCE, SET CHANCE PANEL
-            if game.is_atchance():
-                pass
-                #todo
+            selectable_panels = game.get_selectable_panels(self.player)
+            if panel_idx not in selectable_panels:
+                print("from set_panel: unselectable: ", panel_idx)
+
+            else:
+                is_at_chance = game.is_atchance()
+                panels_to_flip = game.to_get_panels(panel_idx, self.player)
+                for i in panels_to_flip:
+                    self.panels[i] = self.player
+                    # self.audios[i] = AUDIOFILES[self.player]
+                    self.colors[i] = COLORS[self.player]
+                    self.playing[i] = True
+                    for p in PLAYERS:
+                        self.points[p] = self.panels.count(p)
+                    yield
+                    await asyncio.sleep(0.5)
+                    print("changed_panel:", i + 1)
+                    print("from playing:", self.playing)
+                    print("from set_panel:", panel_idx)
+                    print(self.audios)
+                await asyncio.sleep(2.0)
+
+                ## IF NOW IS ATCHANCE, SET CHANCE PANEL
+                if is_at_chance:
+                    for i in range(n_panels):
+                        if self.panels[i] != EMPTY:
+                            self.denied_panels[i] = False
+                    yield
+                    self.set_at_chance = True
+                    return
+                    #todo
+
         for i in range(n_panels):
             self.playing[i] = False
         self.player = EMPTY
@@ -158,6 +239,9 @@ class PanelsState(rx.State):
             self.denied_panels[i] = True
         yield
         ## IF NEXT IS ATCHANCE, RING BELL
+
+        ## IF 
+        print(game.get_board_panels)
         print("from set_panel: current player:", self.player)
 
 print(PanelsState.audios[0].to_string())
@@ -301,53 +385,32 @@ def mydefaultcolor(color):
 
 def index() -> rx.Component:
     return rx.vstack(
-        # counter(),
-
-        # rx.button(
-        #     "Button Text",
-        #     background_color="transparent"
-        # ),
-
-        # # Using rgba with 0 opacity
-        # rx.button(
-        #     "Button Text", 
-        #     background_color="rgba(0,0,0,0)"
-        # ),
-        # rx.vstack(
-        #         rx.button("Toggle", on_click=VisibleState.toggle_visibility),
-        #         rx.cond(
-        #             VisibleState.is_visible,
-        #             rx.button("Hidden Button"),  # Shown when is_visible is True
-        #             rx.text(""),  # Shown when is_visible is False
-        #         ),
-        # ),
-        # rx.box(
-        #     "Animated Content",
-        #     style={
-        #         "@keyframes example": {
-        #             "0%": {"opacity": 0},
-        #             "100%": {"opacity": 1}
-        #         },
-        #         "animation": "example 2s infinite"
-        #     },
-        #     _hover=myripple("#00FF00FF")
-        # ),
-        # rx.flex(
-        #     rx.grid(
-        #         rx.foreach(
-        #             rx.Var.range(9),
-        #             lambda i: rx.button(
-        #                 f"{i + 1}", 
-        #             ),
-        #         ),
-        #         columns="3",
-        #         spacing="0",
-        #         width="90%",
-        #         z_index=5,
-        #     ),
-        # ),
+        rx.hstack(
+            rx.select(
+                SelectState.choices,
+                value=SelectState.value,
+                on_change=SelectState.change_value,
+            ),
+            rx.button(
+                SelectState.value,
+                on_click=[
+                    SelectState.load_game_state(),
+                    PanelsState.load_state(),
+                ]
+            ),
+            rx.text(
+                "Click right to set winner",
+            ),
+            rx.foreach(
+                ForeachPlayerState.players,
+                lambda i: rx.button(
+                    PanelsState.player_names[i],
+                    on_click=PanelsState.set_winner(i),
+                ),
+            ),
+        ),
         rx.button(
-            "Hover Me to set video",
+            "Click Me to set video",
              _hover={
                 "color": "red",
                 "background-position": "right center",
@@ -357,7 +420,17 @@ def index() -> rx.Component:
             on_click=BackgroundState.show_video(),
         ),
         rx.button(
-            "Hover Me to play video",
+            "Click Me to delete_panels",
+             _hover={
+                "color": "red",
+                "background-position": "right center",
+                "background-size": "200%" + " auto",
+                "-webkit-animation2": "pulse 2s infinite",
+            },
+            on_click=PanelsState.delete_panels(),
+        ),
+        rx.button(
+            "Click Me to play video",
              _hover={
                 "color": "red",
                 "background-position": "right center",
@@ -379,14 +452,13 @@ def index() -> rx.Component:
                             myblinkcolor(ColorsState.colors[PanelsState.player]),
                         ),
                         # _enabled=myblinkcolor(),
-                        radius="none",
+                        # radius="none",
                         border_style="solid",
-                        border_width="0.3vh",
+                        border_width="0.1vh",
                         border_color="#000000FF",
                         height=rx.Var.to_string(height)+ "vh",
                         background_color=PanelsState.colors[i],
-                        # background_color="transparent",
-                        # hidden=True,
+                        visibility=PanelsState.visible[i],
                         font_size=rx.Var.to_string(font_height)+ "vh",
                         text_align="center",
                         on_click=PanelsState.set_panel(i),
@@ -434,34 +506,6 @@ def index() -> rx.Component:
 
                 ),
             ),
-            # rx.video(
-            #     # url="https://drive.google.com/file/d/1pW_TSjvkKC7BuUN4dj9wKCphqGqcYzWe/",
-            #     # url="https://drive.google.com/file/d/1pW_TSjvkKC7BuUN4dj9wKCphqGqcYzWe/view?usp=drive_link",
-            #     url="https://www.youtube.com/embed/VcZ_Kt6Dwb4",
-            #     width="400px",
-            #     height="auto",
-            #     # url="/vtrq_sample.mp4",
-            #     # width="90%",
-            #     # height=rx.Var.to_string(panels_height) + "vh",
-            #     # position="absolute",
-            #     controls=False,
-            #     playing=VideoPlayingState.playing.bool(),
-            #     on_ended=VideoPlayingState.stop_playing(),
-            #     # z_index=20,
-            # ),
-            # rx.box(
-            #     width=rx.Var.to_string(panels_width) + "vh",
-            #     height=rx.Var.to_string(panels_height) + "vh",
-            #     background_color="transparent",
-            #     position="absolute",
-            #     # top="40px",
-            #     # left="40px",
-            #     z_index=2,
-            # ),
-            # rx.box(
-            #     width="90%",
-            # ),
-            # rx.logo(),
             width="100%",
         ),
         rx.hstack(
@@ -545,6 +589,7 @@ def index() -> rx.Component:
                     # url=PanelsState.audios[i].to_string(),
                     url=rx.get_upload_url(a.to_string(use_json=False)),
                     controls=False,
+                    visibility="collapse",
                     width="10px",
                     height="10px",
                     playing=PanelsState.playing[i].bool(),
