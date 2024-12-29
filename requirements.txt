@@ -2,7 +2,7 @@ alembic==1.14.0
 annotated-types==0.7.0
 anyio==4.7.0
 async-timeout==5.0.1
-at25 @ git+https://github.com/drakawa/at25@51cdd0df953e9a8c3adb6dd15cf55ca7b4fbdd96
+at25 @ git+https://github.com/drakawa/at25@cb16549c2acc9c7581ee21ab896cca351c6d443a
 backports.tarfile==1.2.0
 bidict==0.23.1
 build==1.2.2.post1
