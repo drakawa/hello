@@ -51,13 +51,14 @@ class GameState(rx.State):
     n_row = game_state.game.get_n_row()
     n_col = game_state.game.get_n_col()
 
-    panels_height = 75
+    panels_height = 60
     panels_width = panels_height * (16 / 9)
 
     height = panels_height / n_row
     width = panels_width / n_col
     n_panels =  n_row * n_col
     font_height = height // 2
+    player_font_size = font_height // 2
 
     panels_list = list(range(n_panels))
     game_player_names = game_state.game.get_player_names()
@@ -329,6 +330,18 @@ def myblinkcolor(color):
 def mydefaultcolor(color):
     return {"color": f"{color}"}
 
+def mydefaultbgcolor(color):
+    return {"background-color": f"{color}"}
+def mygamingbgcolor(color):
+    return {
+        f"@keyframes gamingbgcolor{color[1:]}": {
+            "0%": {"background-color": f"{color}"},
+            "30%": {"background-color": f"#FFFF00FF"},
+            "100%": {"background-color": f"{color}"},
+        },
+        "animation": f"gamingbgcolor{color[1:]} 1s ease infinite"
+    }
+
 class LoginState(rx.State):
     PASS_HEX_DIGEST = 'b1fab726a375cb2d0e0c5321d35bbfdae5eb76e6'
     SALT = 'sa-10!'
@@ -504,22 +517,39 @@ def index() -> rx.Component:
         rx.hstack(
             rx.foreach(
                 GameState.players,
-                lambda i: rx.button(
-                    GameState.points[i].to_string(use_json=False),
-                    style=rx.cond(
-                        GameState.player == i,
-                        myblinkborder(GameState.colors[i].to_string(use_json=False)),
-                        mydefaultborder(GameState.colors[i].to_string(use_json=False)),
+                lambda i: rx.vstack(
+                    rx.box(
+                        GameState.game_player_names[i],
+                        width=rx.Var.to_string(GameState.width)+ "vh",
+                        text_align="center",
+                        # background_color=GameState.colors[i].to_string(use_json=False),
+                        style=rx.cond(
+                            GameState.winner == i,
+                            mygamingbgcolor(GameState.colors[i].to_string(use_json=False)),
+                            mydefaultbgcolor(GameState.colors[i].to_string(use_json=False)),
+                        ),
+                        color="black",
+                        font_size=rx.Var.to_string(GameState.player_font_size)+ "vh",
+                        font_weight="bolder",
+                        border_radius="4px",
                     ),
-                    height=rx.Var.to_string(GameState.height)+ "vh",
-                    width=rx.Var.to_string(GameState.height)+ "vh",
-                    background_color="black",
-                    color="white",
-                    font_size=rx.Var.to_string(GameState.font_height)+ "vh",
-                    text_align="center",
-                    z_index=1,
-                    on_click=GameState.set_player(i),
-                    disabled=GameState.deny_player_button.bool(),
+                    rx.button(
+                        GameState.points[i].to_string(use_json=False),
+                        style=rx.cond(
+                            GameState.player == i,
+                            myblinkborder(GameState.colors[i].to_string(use_json=False)),
+                            mydefaultborder(GameState.colors[i].to_string(use_json=False)),
+                        ),
+                        height=rx.Var.to_string(GameState.height)+ "vh",
+                        width=rx.Var.to_string(GameState.width)+ "vh",
+                        background_color="black",
+                        color="white",
+                        font_size=rx.Var.to_string(GameState.font_height)+ "vh",
+                        text_align="center",
+                        z_index=1,
+                        on_click=GameState.set_player(i),
+                        disabled=GameState.deny_player_button.bool(),
+                    ),
                 ),
             ),
             justify="center",
