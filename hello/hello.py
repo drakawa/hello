@@ -62,20 +62,20 @@ class GameState(rx.State):
     panels_list = list(range(n_panels))
     game_player_names = game_state.game.get_player_names()
 
-    PLAYERS: list[int] = game_state.game.get_player_ids()
+    players: list[int] = game_state.game.get_player_ids()
     
-    COLORS = {
+    colors = {
         EMPTY: "#7F7F7FFF", 
         WALL: "#000000FF", 
         FIRST: "#7F7F7FFF", 
         CHANCE: "#FFFF00FF",
     } | game_state.game.get_player_colors()
 
-    AUDIOFILES = {
-        EMPTY: "gray.wav", 
-        WALL: "gray.wav", 
-        FIRST: "gray.wav", 
-        } | {i: f"color{i}.wav" for i in PLAYERS}
+    audiofiles = {
+        EMPTY: "gray.mp3", 
+        WALL: "gray.mp3", 
+        FIRST: "gray.mp3", 
+        } | {i: f"color{i}.mp3" for i in players}
 
     VTRQ_FIRSTPIC = "lastpic_sample.jpg" 
     VTRQ_MP4 = "vtrq_sample.mp4"
@@ -85,11 +85,11 @@ class GameState(rx.State):
     select_choices: list[str] = sorted((rx.get_upload_dir() / pathlib.Path(("csvs"))).glob('*.csv'))
 
     panels = [EMPTY for _ in range(n_panels)]
-    points = {p: 0 for p in PLAYERS}
+    points = {p: 0 for p in players}
 
     panel_colors = list()
     for panel in panels:
-        panel_colors.append(COLORS[panel])
+        panel_colors.append(colors[panel])
 
     visible = ["visible" for _ in range(n_panels)]
 
@@ -107,9 +107,6 @@ class GameState(rx.State):
     def get_player_ids(self):
         return self.game_state.game.get_player_ids()
 
-# class GameState(rx.State):
-    # 25 # game states
-
     # 25
     denied_panels = [True for _ in range(n_panels)]
 
@@ -126,9 +123,6 @@ class GameState(rx.State):
     winner: int = EMPTY
     deny_player_button = False
     set_at_chance = False
-    # deny_panel_button = True
-    # white_playing = [False for _ in range(n_panels)]
-    # red_playing = [False for _ in range(n_panels)]
 
     @rx.event
     def load_state(self):
@@ -136,10 +130,10 @@ class GameState(rx.State):
         tmp_panels = self.game_state.game.get_board_panels()
         for i in range(self.n_panels):
             self.panels[i] = tmp_panels[i]
-        for p in self.PLAYERS:
+        for p in self.players:
             self.points[p] = self.panels.count(p)
         for i, panel in enumerate(self.panels):
-            self.panel_colors[i] = self.COLORS[panel]
+            self.panel_colors[i] = self.colors[panel]
         for i in range(self.n_panels):
             self.denied_panels[i] = True
         for i in range(self.n_audios):
@@ -159,7 +153,7 @@ class GameState(rx.State):
     def set_player(self, p):
         self.player = p
 
-        if p in self.PLAYERS:
+        if p in self.players:
             self.deny_player_button = False
             for i in range(self.n_panels):
                 self.denied_panels[i-1] = True
@@ -167,7 +161,7 @@ class GameState(rx.State):
             for i in selectable_panels:
                 self.denied_panels[i] = False
             for i in range(self.n_audios):
-                self.audios[i] = self.AUDIOFILES[self.player]
+                self.audios[i] = self.audiofiles[self.player]
             # get selectable panels from game
             print("from set_player: selectable panels:", 
                   [int(i + 1) for i in selectable_panels])
@@ -175,7 +169,7 @@ class GameState(rx.State):
             print("from set_player: current player:", self.player)
             print(self.denied_panels)
         elif p == DEALER:
-            # move to select winner
+            # todo: move to select winner
             pass
         else:
             self.deny_player_button = False
@@ -184,7 +178,7 @@ class GameState(rx.State):
 
     @rx.event
     async def delete_panels(self):
-        if self.winner not in self.PLAYERS:
+        if self.winner not in self.players:
             return
         panels_to_delete = self.game_state.game.get_player_panels(self.winner)
         for i in panels_to_delete:
@@ -196,7 +190,7 @@ class GameState(rx.State):
         
     @rx.event
     async def set_panel(self, panel_idx):
-        if self.player not in self.PLAYERS:
+        if self.player not in self.players:
             return
 
         elif self.set_at_chance:
@@ -205,16 +199,14 @@ class GameState(rx.State):
                 self.denied_panels[i] = True
             yield
             self.panels[panel_idx] = CHANCE
-            self.panel_colors[panel_idx] = self.COLORS[CHANCE]
+            self.panel_colors[panel_idx] = self.colors[CHANCE]
             self.game_state.game.set_at_chance(panel_idx)
-            for p in self.PLAYERS:
+            for p in self.players:
                 self.points[p] = self.panels.count(p)
             self.set_at_chance = False
-            # await asyncio.sleep(0.5)
 
         else:
             self.deny_player_button = True
-            # self.deny_panel_button = True
             for i in range(self.n_panels):
                 self.denied_panels[i] = True
             yield
@@ -228,12 +220,11 @@ class GameState(rx.State):
                 panels_to_flip = self.game_state.game.to_get_panels(panel_idx, self.player)
                 for a_i, i in enumerate(panels_to_flip):
                     self.panels[i] = self.player
-                    # self.audios[i] = AUDIOFILES[self.player]
-                    self.panel_colors[i] = self.COLORS[self.player]
+                    self.panel_colors[i] = self.colors[self.player]
                     self.playing[a_i % self.n_audios] = False
                     yield
                     self.playing[a_i % self.n_audios] = True
-                    for p in self.PLAYERS:
+                    for p in self.players:
                         self.points[p] = self.panels.count(p)
                     yield
                     await asyncio.sleep(0.5)
@@ -259,7 +250,6 @@ class GameState(rx.State):
         yield
 
         self.deny_player_button = False
-        # self.deny_panel_button = True
         for i in range(self.n_panels):
             self.denied_panels[i] = True
         yield
@@ -268,36 +258,6 @@ class GameState(rx.State):
         ## IF 
         print(self.game_state.game.get_board_panels)
         print("from set_panel: current player:", self.player)
-
-# class ForeachPlayerState(rx.State):
-#     players: list[int] = GameState.get_player_ids()
-
-# print(GameState.audios[0].to_string())
-# print(GameState.playing[0].bool())
-# print(GameState.colors[0])
-# print(GameState.audios[0])
-
-# def myaudio_dynamic():
-#     return rx.foreach(
-#         rx.Var.range(n_panels),
-#         lambda i: rx.audio(
-#             # url=GameState.audios[i], # error
-#             # url=GameState.audios[i].to_string(),
-#             url=GameState.audios[i].to_string(), 
-#             controls=True,
-#             playing=GameState.playing[i].bool(),
-#         ),
-#     ),
-
-# def myaudio(color):
-#     return rx.foreach(
-#         rx.Var.range(n_panels),
-#         lambda i: rx.audio(
-#             url=AUDIOFILES[color],
-#             controls=False,
-#             playing=GameState.playing[i + n_panels * (color - 1)].bool(),
-#         ),
-#     ),
 
 BG_HIDDEN=101
 BG_SHOW=102
@@ -369,18 +329,6 @@ def myblinkcolor(color):
 def mydefaultcolor(color):
     return {"color": f"{color}"}
 
-# @keyframes blinkBorder {
-#   0% {
-#     border: 6px solid #cc2200;
-#   }
-#   100% {
-#     border: 6px solid #efefef;
-#   }
-# }
-# .btn {
-#   animation: blinkBorder 1s ease infinite alternate;
-# }
-
 class LoginState(rx.State):
     PASS_HEX_DIGEST = 'b1fab726a375cb2d0e0c5321d35bbfdae5eb76e6'
     SALT = 'sa-10!'
@@ -451,7 +399,7 @@ def index() -> rx.Component:
                 "Click right to set winner",
             ),
             rx.foreach(
-                GameState.PLAYERS,
+                GameState.players,
                 lambda i: rx.button(
                     GameState.player_names[i],
                     on_click=GameState.set_winner(i),
@@ -498,10 +446,8 @@ def index() -> rx.Component:
                         style=rx.cond(
                             GameState.denied_panels[i],
                             mydefaultcolor("#000000FF"),
-                            myblinkcolor(GameState.COLORS[GameState.player].to_string(use_json=False)),
+                            myblinkcolor(GameState.colors[GameState.player].to_string(use_json=False)),
                         ),
-                        # _enabled=myblinkcolor(),
-                        # radius="none",
                         border_style="solid",
                         border_width="0.1vh",
                         border_color="#000000FF",
@@ -526,8 +472,6 @@ def index() -> rx.Component:
                     height=rx.Var.to_string(GameState.panels_height) + "vh",
                     background_color="transparent",
                     position="absolute",
-                    # top="40px",
-                    # left="40px",
                     z_index=3,
                 ),
                 rx.cond(
@@ -559,37 +503,20 @@ def index() -> rx.Component:
         ),
         rx.hstack(
             rx.foreach(
-                GameState.PLAYERS,
+                GameState.players,
                 lambda i: rx.button(
                     GameState.points[i].to_string(use_json=False),
-                    # border_style="solid",
-                    # border_width="1vh",
-                    # border_color=ColorsState.colors[i],
-                    # _enabled=[
-                    #     myripple(),
-                    #     myblinkborder(ColorsState.colors[i]),
-                    # ],
-                    # style=myblinkborder(ColorsState.colors[i]),
-                    # rx.cond(
-                    # GameState.player == i,
-#                   style=mydefaultborder(ColorsState.colors[i]),
-                    #)
-                    # style=mydefaultborder(ColorsState.colors[i]),
                     style=rx.cond(
                         GameState.player == i,
-                        myblinkborder(GameState.COLORS[i].to_string(use_json=False)),
-                        mydefaultborder(GameState.COLORS[i].to_string(use_json=False)),
+                        myblinkborder(GameState.colors[i].to_string(use_json=False)),
+                        mydefaultborder(GameState.colors[i].to_string(use_json=False)),
                     ),
-                    # _enabled=myblinkborder(ColorsState.colors[i]),
                     height=rx.Var.to_string(GameState.height)+ "vh",
                     width=rx.Var.to_string(GameState.height)+ "vh",
                     background_color="black",
                     color="white",
                     font_size=rx.Var.to_string(GameState.font_height)+ "vh",
                     text_align="center",
-                    # position="absolute",
-                    # top="40px",
-                    # left="40px",
                     z_index=1,
                     on_click=GameState.set_player(i),
                     disabled=GameState.deny_player_button.bool(),
@@ -601,41 +528,10 @@ def index() -> rx.Component:
             z_index=5,
 
         ),
-        # rx.button(
-        #     GameState.points[WHITE].to_string(use_json=False),
-        #     _enabled=myripple(),
-        #     height=rx.Var.to_string(height)+ "vh",
-        #     width=rx.Var.to_string(player_width)+ "vh",
-        #     background_color="white",
-        #     color="black",
-        #     font_size=rx.Var.to_string(font_height)+ "vh",
-        #     text_align="center",
-        #     # position="absolute",
-        #     # top="40px",
-        #     # left="40px",
-        #     z_index=1,
-        #     on_click=GameState.set_player(WHITE),
-        #     disabled=GameState.deny_player_button.bool(),
-        # ),
-        # rx.button(
-        #     width="10%",
-        #     height="10vh",
-        #     _enabled=myripple(),
-        #     background_color="red",
-        #     # position="absolute",
-        #     # top="40px",
-        #     # left="40px",
-        #     z_index=1,
-        #     on_click=GameState.set_player(RED),
-        #     disabled=GameState.deny_player_button.bool(),
-        # ),
-        # myaudio(),
         rx.hstack(
             rx.foreach(
                 GameState.audios,
                 lambda a, i: rx.audio(
-                    # url=GameState.audios[i], # error
-                    # url=GameState.audios[i].to_string(),
                     url=rx.get_upload_url(a.to_string(use_json=False)),
                     controls=False,
                     visibility="collapse",
@@ -645,22 +541,6 @@ def index() -> rx.Component:
                 ),
             ),
         ),
-        # rx.foreach(
-        #     rx.Var.range(n_panels),
-        #     lambda i: rx.audio(
-        #         url="/red.wav",
-        #         controls=False,
-        #         playing=GameState.playing[i + n_panels * (RED - 1)].bool(),
-        #     ),
-        # ),
-        # rx.foreach(
-        #     rx.Var.range(n_panels),
-        #     lambda i: rx.audio(
-        #         url="/red.wav",
-        #         controls=False,
-        #         playing=GameState.red_playing[i].bool(),
-        #     ),
-        # ),
     )
 
 app = rx.App()
