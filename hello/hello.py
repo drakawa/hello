@@ -259,6 +259,7 @@ class GameState(rx.State):
         ## IF 
         print(self.game_state.game.get_board_panels)
         print("from set_panel: current player:", self.player)
+        self.select_choices = sorted((rx.get_upload_dir() / pathlib.Path(("csvs"))).glob('*.csv'))
 
 BG_HIDDEN=101
 BG_SHOW=102
