@@ -8,17 +8,42 @@ import os
 import pathlib
 import at25
 from at25 import WALL, FIRST, CHANCE, EMPTY, DELETED, DEALER
+import hashlib, secrets
+
+def delete_oldcsvs(path_to_save):
+
+    # ディレクトリ内のCSVファイルを特定ファイルを除いて取得し、更新日時順にソート
+    except_csv_files = ["aat25_init.csv",]
+    csv_files = [
+        os.path.join(path_to_save, f)
+        for f in os.listdir(path_to_save)
+        if f.endswith(".csv") and f not in except_csv_files
+    ]
+    csv_files.sort(key=os.path.getmtime, reverse=True)
+
+    # 最新100個以外のファイルを削除
+    files_to_delete = csv_files[100:]  # 100個目以降のファイル
+    for file in files_to_delete:
+        try:
+            os.remove(file)
+            print(f"Deleted: {file}")
+        except Exception as e:
+            print(f"Error deleting {file}: {e}")
+
+    print(f"{except_csv_files}を除く古いCSVファイルの削除が完了しました。")
+
+udir = rx.get_upload_dir()
+conf_yaml = "config_default.yaml"
+csvs_dir = "csvs"
+conf_path = os.path.join(udir, conf_yaml)
+save_path = os.path.join(udir, csvs_dir)
+
+delete_oldcsvs(save_path)
 
 class AT25(rx.Base):
     game: at25.Attack25
 
 class GameState(rx.State):
-    udir = rx.get_upload_dir()
-    conf_yaml = "config_default.yaml"
-    csvs = "csvs"
-    conf_path = os.path.join(udir, conf_yaml)
-    save_path = os.path.join(udir, csvs)
-
     game_state: AT25 = AT25(
         game = at25.Attack25(conf_path, save_path)
     )
@@ -356,8 +381,62 @@ def mydefaultcolor(color):
 #   animation: blinkBorder 1s ease infinite alternate;
 # }
 
+class LoginState(rx.State):
+    PASS_HEX_DIGEST = 'b1fab726a375cb2d0e0c5321d35bbfdae5eb76e6'
+    SALT = 'sa-10!'
+    SUCCESS = "Successful Login!"
+    FAILURE = "Incorrect Password..."
+
+    form_data: dict = {}
+    message = ""
+    open_dialog = True
+
+    @rx.event
+    async def handle_submit(self, form_data: dict):
+        """Handle the form submit."""
+        input_pass: str = form_data["input"]
+        m = hashlib.sha1()
+        m.update(input_pass.encode())
+        m.update(self.SALT.encode())
+        if secrets.compare_digest(m.hexdigest(), self.PASS_HEX_DIGEST):
+            self.message = self.SUCCESS
+            yield
+            await asyncio.sleep(1.0)
+            self.open_dialog = False
+        else:
+            self.message = self.FAILURE
+
+def mydialog():
+    return rx.dialog.root(
+        rx.dialog.content(
+            rx.form.root(
+                rx.hstack(
+                    rx.input(
+                        name="input",
+                        placeholder="Enter text...",
+                        type="text",
+                        required=True,
+                    ),
+                    rx.button("Submit", type="submit"),
+                    width="100%",
+                ),
+                on_submit=LoginState.handle_submit,
+                reset_on_submit=False,
+            ),
+            rx.divider(),
+            rx.hstack(
+                rx.heading("Results:"),
+                rx.badge(
+                    LoginState.message.to_string()
+                ),
+            ),
+        ),
+        open=LoginState.open_dialog,
+    )
+
 def index() -> rx.Component:
     return rx.vstack(
+        # mydialog(),
         rx.hstack(
             rx.select(
                 GameState.select_choices,
