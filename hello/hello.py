@@ -417,9 +417,84 @@ def logindialog():
         open=LoginState.open_dialog,
     )
 
+# class AIConfState(rx.State):
+#     yaml_content: str = ""
+#     open: bool = True
+#     default_value: str = conf_txt
+
+#     def do_nothing(self):
+#         print("do nothing!!!!")
+#         return
+
+#     def update_yaml(self, form_data: dict):
+#         print(self.default_value)
+#         # Here you would process the YAML content
+#         self.yaml_content = form_data["yaml_content"]
+#         if self.default_value == self.yaml_content:
+#             is_toasted = rx.toast.success("YAML content has no difference...")
+#         else:
+#             is_toasted = rx.toast.success("YAML content updated successfully!")
+#         self.open = not is_toasted
+#         print(yaml.safe_load(self.yaml_content))
+#         return is_toasted
+# # class ConfigState(rx.State):
+# #     conf_at25: dict
+
+# #     def load_conf(self):
+# #         with open(conf_path, "r") as f:
+# #             self.conf_at25 = yaml.safe_load(f)
+
+# def ai_yaml_editor():
+#     return rx.dialog.root(
+#         # rx.dialog.trigger(
+#         #     rx.button("Edit YAML Content")
+#         # ),
+#         rx.dialog.content(
+#             rx.dialog.title("Update YAML Content"),
+#             rx.dialog.description("Edit your YAML configuration below"),
+#             rx.form(
+#                 rx.vstack(
+#                     rx.text_area(
+#                         placeholder="Enter YAML content",
+#                         value=AIConfState.default_value,
+#                         name="yaml_content",
+#                         height="200px",
+#                         width="400px",
+#                         on_change=AIConfState.do_nothing(),
+#                     ),
+#                     rx.flex(
+#                         rx.dialog.close(
+#                             rx.button(
+#                                 "Cancel",
+#                                 variant="soft",
+#                                 color_scheme="gray",
+#                             ),
+#                         ),
+#                         rx.dialog.close(
+#                             rx.button(
+#                                 "Save",
+#                                 type="submit"
+#                             ),
+#                         ),
+#                         spacing="3",
+#                         justify="end",
+#                     ),
+#                 ),
+#                 on_submit=AIConfState.update_yaml,
+#             ),
+#             max_width="450px",
+#         ),
+#         open = AIConfState.open
+#     )
+
+
 def index() -> rx.Component:
     return rx.vstack(
-        # mydialog(),
+        # rx.cond(
+        #     LoginState.open_dialog,
+        #     logindialog(),
+        #     ai_yaml_editor(),
+        # ),
         rx.hstack(
             rx.select(
                 GameState.select_choices,
