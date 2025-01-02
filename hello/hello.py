@@ -64,10 +64,24 @@ class GameState(rx.State):
     player_font_size = font_height // 2
 
     panels_list = list(range(n_panels))
-    game_player_names = game_state.game.get_player_names()
-
     players: list[int] = game_state.game.get_player_ids()
-    
+    game_player_names: dict[int, str] = {
+        i + 1: f"player{i + 1}" for i in range(len(players))
+    }
+
+    on_edit = [False for _ in players]
+    on_edit_player: int = None
+
+    @rx.event
+    def edit_player_name(self, i):
+        self.on_edit_player = i
+        self.on_edit[i] = True
+    def set_player_name(self, input: dict):
+        self.game_player_names[self.on_edit_player] = input["input"]
+        print("player_names:", self.game_player_names)
+        self.on_edit[self.on_edit_player] = False
+        print("on_edit:", self.on_edit)
+
     colors = {
         EMPTY: "#7F7F7FFF", 
         WALL: "#000000FF", 
@@ -137,7 +151,7 @@ class GameState(rx.State):
     playing = [False for _ in range(n_audios)]
 
     # 4 FIXED?
-    player_names: dict[int, str] = game_player_names
+    # player_names: dict[int, str] = game_player_names
 
     # 1
     player: int = EMPTY
@@ -168,7 +182,7 @@ class GameState(rx.State):
 
     def set_winner(self, i):
         self.winner = i
-        print("from set_winner: winner:", i, self.player_names[i])
+        print("from set_winner: winner:", i, self.game_player_names[i])
 
     @rx.event
     def set_player(self, p):
@@ -389,6 +403,41 @@ class LoginState(rx.State):
         else:
             self.message = self.FAILURE
 
+# class SetNameState(rx.State):
+#     player_idx: int
+
+#     def set_player_idx(self, idx):
+#         self.player_idx = idx
+#     def handle_submit(self, form_data: dict):
+#         print("handle_submit:", form_data)
+#         return GameState.set_player_name(self.player_idx, form_data["input"])
+
+# def namedialog(i: int):
+#     print("from_namedialog:", i)
+#     SetNameState.set_player_idx(i)
+#     return rx.dialog.root(
+#         rx.dialog.content(
+#             rx.form.root(
+#                 rx.hstack(
+#                     rx.input(
+#                         name="input",
+#                         placeholder="Enter text...",
+#                         type="text",
+#                         required=True,
+#                     ),
+#                     rx.button("Submit", type="submit",),
+#                     rx.dialog.close(
+#                         rx.button("Close Dialog", size="3"),
+#                     ),
+#                     width="100%",
+#                 ),
+#                 on_submit=SetNameState.handle_submit,
+#                 reset_on_submit=False,
+#             ),
+#         ),
+#         open=GameState.on_edit[i].bool(),
+#     )
+
 def logindialog():
     return rx.dialog.root(
         rx.dialog.content(
@@ -511,7 +560,7 @@ def index() -> rx.Component:
             rx.foreach(
                 GameState.players,
                 lambda i: rx.button(
-                    GameState.player_names[i],
+                    GameState.game_player_names[i],
                     on_click=GameState.set_winner(i),
                 ),
             ),
@@ -644,20 +693,37 @@ def index() -> rx.Component:
             rx.foreach(
                 GameState.players,
                 lambda i: rx.vstack(
-                    rx.box(
-                        GameState.game_player_names[i],
-                        width=rx.Var.to_string(GameState.width)+ "vh",
-                        text_align="center",
-                        # background_color=GameState.colors[i].to_string(use_json=False),
-                        style=rx.cond(
-                            GameState.winner == i,
-                            mygamingbgcolor(GameState.colors[i].to_string(use_json=False)),
-                            mydefaultbgcolor(GameState.colors[i].to_string(use_json=False)),
+                    rx.cond(
+                        GameState.on_edit[i].bool(),
+                        rx.form.root(
+                            rx.hstack(
+                                rx.input(
+                                    name="input",
+                                    placeholder="Enter text...",
+                                    type="text",
+                                    required=True,
+                                ),
+                                rx.button("Submit", type="submit",),
+                            ),
+                            on_submit=GameState.set_player_name,
+                            reset_on_submit=False,
                         ),
-                        color="black",
-                        font_size=rx.Var.to_string(GameState.player_font_size)+ "vh",
-                        font_weight="bolder",
-                        border_radius="4px",
+                        rx.box(
+                            GameState.game_player_names[i],
+                            width=rx.Var.to_string(GameState.width)+ "vh",
+                            text_align="center",
+                            background_color=GameState.colors[i].to_string(use_json=False),
+                            style=rx.cond(
+                                GameState.winner == i,
+                                mygamingbgcolor(GameState.colors[i].to_string(use_json=False)),
+                                mydefaultbgcolor(GameState.colors[i].to_string(use_json=False)),
+                            ),
+                            color="black",
+                            font_size=rx.Var.to_string(GameState.player_font_size)+ "vh",
+                            font_weight="bolder",
+                            border_radius="4px",
+                            on_double_click=GameState.edit_player_name(i),
+                        ),
                     ),
                     rx.button(
                         GameState.points[i].to_string(use_json=False),
