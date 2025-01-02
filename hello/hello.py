@@ -9,6 +9,7 @@ import pathlib
 import at25
 from at25 import WALL, FIRST, CHANCE, EMPTY, DELETED, DEALER
 import hashlib, secrets
+import yaml
 
 def delete_oldcsvs(path_to_save):
 
@@ -32,11 +33,13 @@ def delete_oldcsvs(path_to_save):
 
     print(f"{except_csv_files}を除く古いCSVファイルの削除が完了しました。")
 
+INIT_PLAYING_VIDEO = False
 udir = rx.get_upload_dir()
 conf_yaml = "config_default.yaml"
 csvs_dir = "csvs"
 conf_path = os.path.join(udir, conf_yaml)
 save_path = os.path.join(udir, csvs_dir)
+conf_txt = pathlib.Path(conf_path).read_text()
 
 delete_oldcsvs(save_path)
 
@@ -78,9 +81,26 @@ class GameState(rx.State):
         FIRST: "gray.mp3", 
         } | {i: f"color{i}.mp3" for i in players}
 
-    VTRQ_FIRSTPIC = "lastpic_sample.jpg" 
-    VTRQ_MP4 = "vtrq_sample.mp4"
-    VTRQ_LASTPIC = "lastpic_sample.jpg"
+    VTRQ_MP4_DEFAULT = "vtrq_sample.mp4"
+    vtrq_mp4 = VTRQ_MP4_DEFAULT
+    vtrq_lastpic = "lastpic_sample.jpg"
+
+    @rx.event
+    def auth_vtrq(self, form_data: dict):
+        PASS_HEX_DIGEST = 'b1fab726a375cb2d0e0c5321d35bbfdae5eb76e6' # 
+    # PASS_HEX_DIGEST = '61eda3174e4614a3f02c467ea444d260192d4f35' # EMPTY PASSWORD
+        SALT = 'sa-10!'
+
+        input_pass: str = form_data["vtrq_pass"]
+        m = hashlib.sha1()
+        m.update(input_pass.encode())
+        m.update(SALT.encode())
+        if secrets.compare_digest(m.hexdigest(), PASS_HEX_DIGEST):
+            self.vtrq_mp4 = "vtrq_sample2.mp4"
+            return rx.toast.success("valid password.")
+        else:
+            self.vtrq_mp4 = self.VTRQ_MP4_DEFAULT
+            return rx.toast.warning("INVALID password.")
 
     selected_value: str = ""
     select_choices: list[str] = sorted((rx.get_upload_dir() / pathlib.Path(("csvs"))).glob('*.csv'))
@@ -344,7 +364,8 @@ def mygamingbgcolor(color):
     }
 
 class LoginState(rx.State):
-    PASS_HEX_DIGEST = 'b1fab726a375cb2d0e0c5321d35bbfdae5eb76e6'
+    PASS_HEX_DIGEST = 'b1fab726a375cb2d0e0c5321d35bbfdae5eb76e6' # 
+    # PASS_HEX_DIGEST = '61eda3174e4614a3f02c467ea444d260192d4f35' # EMPTY PASSWORD
     SALT = 'sa-10!'
     SUCCESS = "Successful Login!"
     FAILURE = "Incorrect Password..."
@@ -368,7 +389,7 @@ class LoginState(rx.State):
         else:
             self.message = self.FAILURE
 
-def mydialog():
+def logindialog():
     return rx.dialog.root(
         rx.dialog.content(
             rx.form.root(
@@ -420,6 +441,18 @@ def index() -> rx.Component:
                 ),
             ),
         ),
+        rx.form(
+            rx.hstack(
+                rx.input(
+                    placeholder="vtrq_pass",
+                    name="vtrq_pass",
+                    type="password",
+                ),
+                rx.button("Submit", type="submit"),
+            ),
+            on_submit=GameState.auth_vtrq,
+            reset_on_submit=True,
+        ),
         rx.button(
             "Click Me to set video",
              _hover={
@@ -428,7 +461,10 @@ def index() -> rx.Component:
                 "background-size": "200%" + " auto",
                 "-webkit-animation2": "pulse 2s infinite",
             },
-            on_click=BackgroundState.show_video(),
+            on_click=[
+                VideoPlayingState.stop_playing(),
+                BackgroundState.show_video(),
+            ]
         ),
         rx.button(
             "Click Me to delete_panels",
@@ -488,30 +524,44 @@ def index() -> rx.Component:
                     position="absolute",
                     z_index=3,
                 ),
-                rx.cond(
-                    BackgroundState.bg == BG_SHOW,
-                    rx.video(
-                        url=rx.get_upload_url(GameState.VTRQ_MP4),
-                        width=rx.Var.to_string(GameState.panels_width) + "vh",
-                        height=rx.Var.to_string(GameState.panels_height) + "vh",
-                        position="absolute",
-                        controls=False,
-                        playing=VideoPlayingState.playing.bool(),
-                        on_ended=[
-                            BackgroundState.show_lastpic()
-                        ],
-                        z_index=2,
-                    ),
-                    rx.image(
-                        src=rx.get_upload_url(GameState.VTRQ_LASTPIC),
-                        width=rx.Var.to_string(GameState.panels_width) + "vh",
-                        height=rx.Var.to_string(GameState.panels_height) + "vh",
-                        position="absolute",
-                        z_index=3,
-                    ),
-
-
+                rx.video(
+                    url=rx.get_upload_url(GameState.vtrq_mp4),
+                    width=rx.Var.to_string(GameState.panels_width) + "vh",
+                    height=rx.Var.to_string(GameState.panels_height) + "vh",
+                    position="absolute",
+                    controls=False,
+                    on_ready=VideoPlayingState.stop_playing(),
+                    playing=VideoPlayingState.playing.bool(),
+                    on_ended=VideoPlayingState.stop_playing(),
+                    # on_ended=[
+                    #     BackgroundState.show_lastpic()
+                    # ],
+                    z_index=2,
                 ),
+                # rx.cond(
+                #     BackgroundState.bg == BG_SHOW,
+                #     rx.video(
+                #         url=rx.get_upload_url(GameState.vtrq_mp4),
+                #         width=rx.Var.to_string(GameState.panels_width) + "vh",
+                #         height=rx.Var.to_string(GameState.panels_height) + "vh",
+                #         position="absolute",
+                #         controls=False,
+                #         playing=VideoPlayingState.playing.bool(),
+                #         on_ended=[
+                #             BackgroundState.show_lastpic()
+                #         ],
+                #         z_index=2,
+                #     ),
+                #     rx.image(
+                #         src=rx.get_upload_url(GameState.vtrq_lastpic),
+                #         width=rx.Var.to_string(GameState.panels_width) + "vh",
+                #         height=rx.Var.to_string(GameState.panels_height) + "vh",
+                #         position="absolute",
+                #         z_index=3,
+                #     ),
+
+
+                # ),
             ),
             width="100%",
         ),
