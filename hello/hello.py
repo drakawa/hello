@@ -95,6 +95,8 @@ class GameState(rx.State):
         FIRST: "gray.mp3", 
         } | {i: f"color{i}.mp3" for i in players}
 
+    game_id: int = game_state.game.get_game_id()
+
     VTRQ_MP4_DEFAULT = "vtrq_sample.mp4"
     vtrq_mp4 = VTRQ_MP4_DEFAULT
     vtrq_lastpic = "lastpic_sample.jpg"
@@ -536,80 +538,129 @@ def logindialog():
 #         open = AIConfState.open
 #     )
 
+class DrawerState(rx.State):
+    is_open: bool = False
+
+    @rx.event
+    def toggle_drawer(self):
+        self.is_open = not self.is_open
+
+
+def drawer_content():
+    return rx.drawer.content(
+        rx.flex(
+            rx.hstack(
+                rx.drawer.close(
+                    rx.button(
+                        "Close",
+                        on_click=DrawerState.toggle_drawer,
+                    )
+                ),
+                rx.select(
+                    GameState.select_choices,
+                    value=GameState.selected_value,
+                    on_change=GameState.change_value,
+                ),
+                rx.button(
+                    GameState.selected_value,
+                    on_click=GameState.load_state(),
+                ),
+                rx.text(
+                    "Click right to set winner",
+                ),
+                rx.foreach(
+                    GameState.players,
+                    lambda i: rx.button(
+                        f"{GameState.game_player_names[i]} ({GameState.points[i]})",
+                        background_color=GameState.colors[i],
+                        color='black',
+                        on_click=GameState.set_winner(i),
+                    ),
+                ),
+            ),
+            rx.hstack(
+            rx.form(
+                rx.hstack(
+                    rx.input(
+                        placeholder="vtrq_pass",
+                        name="vtrq_pass",
+                        type="password",
+                    ),
+                    rx.button("Submit", type="submit"),
+                ),
+                on_submit=GameState.auth_vtrq,
+                reset_on_submit=True,
+            ),
+            rx.button(
+                "Click Me to set video",
+                _hover={
+                    "color": "red",
+                    "background-position": "right center",
+                    "background-size": "200%" + " auto",
+                    "-webkit-animation2": "pulse 2s infinite",
+                },
+                on_click=[
+                    VideoPlayingState.stop_playing(),
+                    BackgroundState.show_video(),
+                ]
+            ),
+            rx.button(
+                "Click Me to delete_panels",
+                _hover={
+                    "color": "red",
+                    "background-position": "right center",
+                    "background-size": "200%" + " auto",
+                    "-webkit-animation2": "pulse 2s infinite",
+                },
+                on_click=GameState.delete_panels(),
+            ),
+            rx.button(
+                "Click Me to play video",
+                _hover={
+                    "color": "red",
+                    "background-position": "right center",
+                    "background-size": "200%" + " auto",
+                    "-webkit-animation2": "pulse 2s infinite",
+                },
+                on_click=VideoPlayingState.start_playing(),
+            ),
+
+            ),
+            align_items="start",
+            direction="column",
+            spacing="1"
+        ),
+        height="10%",
+        width="100%",
+        padding="0em",
+        background_color=rx.color("grass", 7),
+    )
+
+def lateral_menu():
+    return rx.drawer.root(
+        rx.drawer.trigger(
+            rx.button(
+                "Open Drawer",
+                on_click=DrawerState.toggle_drawer,
+            )
+        ),
+        rx.drawer.overlay(),
+        rx.drawer.portal(drawer_content()),
+        open=DrawerState.is_open,
+        direction="top",
+        modal=False,
+    )
+
 
 def index() -> rx.Component:
     return rx.vstack(
+        lateral_menu(),
+        rx.text(f"Game ID: {GameState.game_id}"),
         # rx.cond(
         #     LoginState.open_dialog,
         #     logindialog(),
         #     ai_yaml_editor(),
         # ),
-        rx.hstack(
-            rx.select(
-                GameState.select_choices,
-                value=GameState.selected_value,
-                on_change=GameState.change_value,
-            ),
-            rx.button(
-                GameState.selected_value,
-                on_click=GameState.load_state(),
-            ),
-            rx.text(
-                "Click right to set winner",
-            ),
-            rx.foreach(
-                GameState.players,
-                lambda i: rx.button(
-                    GameState.game_player_names[i],
-                    on_click=GameState.set_winner(i),
-                ),
-            ),
-        ),
-        rx.form(
-            rx.hstack(
-                rx.input(
-                    placeholder="vtrq_pass",
-                    name="vtrq_pass",
-                    type="password",
-                ),
-                rx.button("Submit", type="submit"),
-            ),
-            on_submit=GameState.auth_vtrq,
-            reset_on_submit=True,
-        ),
-        rx.button(
-            "Click Me to set video",
-             _hover={
-                "color": "red",
-                "background-position": "right center",
-                "background-size": "200%" + " auto",
-                "-webkit-animation2": "pulse 2s infinite",
-            },
-            on_click=[
-                VideoPlayingState.stop_playing(),
-                BackgroundState.show_video(),
-            ]
-        ),
-        rx.button(
-            "Click Me to delete_panels",
-             _hover={
-                "color": "red",
-                "background-position": "right center",
-                "background-size": "200%" + " auto",
-                "-webkit-animation2": "pulse 2s infinite",
-            },
-            on_click=GameState.delete_panels(),
-        ),
-        rx.button(
-            "Click Me to play video",
-             _hover={
-                "color": "red",
-                "background-position": "right center",
-                "background-size": "200%" + " auto",
-                "-webkit-animation2": "pulse 2s infinite",
-            },
-            on_click=VideoPlayingState.start_playing(),
-        ),
         rx.center(
             rx.grid(
                 rx.foreach(
@@ -763,6 +814,8 @@ def index() -> rx.Component:
                 ),
             ),
         ),
+        justify="end",
+        spacing="5"
     )
 
 app = rx.App()
