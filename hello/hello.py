@@ -250,6 +250,17 @@ class GameState(rx.State):
             self.game_state.game.set_at_chance(panel_idx)
             for p in self.players:
                 self.points[p] = self.panels.count(p)
+
+            prev_color = self.panel_colors[panel_idx]
+            for _ in range(4):
+                self.panel_colors[panel_idx] = prev_color
+                yield
+                await asyncio.sleep(0.5)
+                self.panel_colors[panel_idx] = self.colors[EMPTY]
+                yield
+                await asyncio.sleep(0.5)
+
+            self.panel_colors[panel_idx] = self.colors[CHANCE]
             self.set_at_chance = False
 
         else:
