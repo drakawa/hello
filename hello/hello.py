@@ -611,7 +611,7 @@ def drawer_content():
                     on_click=GameState.load_state(),
                 ),
                 rx.text(
-                    "Click right to set winner",
+                    "Click right to set winner", size="3", width="200px",
                 ),
                 rx.foreach(
                     GameState.players,
@@ -669,13 +669,14 @@ def drawer_content():
                 },
                 on_click=VideoPlayingState.start_playing(),
             ),
+            rx.text(f"Game ID: {GameState.game_id}", size="1", width="400px"),
 
             ),
             align_items="start",
             direction="column",
             spacing="1"
         ),
-        height="10%",
+        height="75px",
         width="100%",
         padding="0em",
         background_color=rx.color("grass", 7),
@@ -708,7 +709,8 @@ def index() -> rx.Component:
                 on_click=GameState.play_deden(),
             ),
         ),
-        rx.text(f"Game ID: {GameState.game_id}"),
+        rx.text(f""),
+        # rx.text(f"Game ID: {GameState.game_id}"),
         # rx.cond(
         #     LoginState.open_dialog,
         #     logindialog(),
