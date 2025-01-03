@@ -418,9 +418,9 @@ def mydefaultbgcolor(color):
 def mygamingbgcolor(color):
     return {
         f"@keyframes gamingbgcolor{color[1:]}": {
-            "0%": {"background-color": f"{color}"},
-            "30%": {"background-color": f"#FFFF00FF"},
-            "100%": {"background-color": f"{color}"},
+            "0%": {"background-color": f"{color}", "box-shadow": f"0 0 0 0 {color}"},
+            "30%": {"background-color": f"#FFFF00FF", "box-shadow": f"0 0 0 20px {color[:-2]}80"},
+            "100%": {"background-color": f"{color}", "box-shadow": f"0 0 0 20px {color[:-2]}00"},
         },
         "animation": f"gamingbgcolor{color[1:]} 1s ease infinite"
     }
