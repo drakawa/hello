@@ -65,11 +65,12 @@ class GameState(rx.State):
 
     panels_list = list(range(n_panels))
     players: list[int] = game_state.game.get_player_ids()
+    print(players)
     game_player_names: dict[int, str] = {
-        i + 1: f"player{i + 1}" for i in range(len(players))
+        i: f"player{i}" for i in players
     }
 
-    on_edit = [False for _ in players]
+    on_edit = {i: False for i in players}
     on_edit_player: int = None
 
     @rx.event
@@ -77,6 +78,7 @@ class GameState(rx.State):
         self.on_edit_player = i
         self.on_edit[i] = True
     def set_player_name(self, input: dict):
+        print("on_edit:", self.on_edit)
         self.game_player_names[self.on_edit_player] = input["input"]
         print("player_names:", self.game_player_names)
         self.on_edit[self.on_edit_player] = False
