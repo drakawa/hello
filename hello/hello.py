@@ -122,7 +122,7 @@ class GameState(rx.State):
         m.update(input_pass.encode())
         m.update(SALT.encode())
         if secrets.compare_digest(m.hexdigest(), PASS_HEX_DIGEST):
-            self.vtrq_mp4 = "vtrq_sample2.mp4"
+            self.vtrq_mp4 = "vtrq_masterpiece.mp4"
             return rx.toast.success("valid password.")
         else:
             self.vtrq_mp4 = self.VTRQ_MP4_DEFAULT
@@ -146,7 +146,6 @@ class GameState(rx.State):
         self.selected_value = value
         print("from change value: ", self.selected_value)
 
-    @rx.event
     def get_board_panels(self):
         return self.game_state.game.get_board_panels()
     def get_player_colors(self):
@@ -339,7 +338,7 @@ class GameState(rx.State):
     async def play_deden(self):
         self.atchance_deden_playing = True
         yield
-        await asyncio.sleep(1.5)
+        await asyncio.sleep(2.0)
         self.at_chance_deden_playing = False
         self.visible_deden_button = "collapse"
         yield
