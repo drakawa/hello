@@ -154,6 +154,14 @@ class GameState(rx.State):
     audios = ["" for _ in range(n_audios)]
     playing = [False for _ in range(n_audios)]
 
+    atchance_chime_playing: bool = False
+    atchance_deden_playing: bool = False
+    panel_win_playing: bool = False
+    success: bool = False
+    failure: bool = False
+
+    visible_deden_button: str = "collapse"
+    at_chance_deden_playing: bool = False
     # 4 FIXED?
     # player_names: dict[int, str] = game_player_names
 
@@ -293,11 +301,31 @@ class GameState(rx.State):
             self.denied_panels[i] = True
         yield
         ## IF NEXT IS ATCHANCE, RING BELL
+        if self.game_state.game.is_atchance():
+            # play zingle
+            self.atchance_chime_playing = True
+            yield
+            await asyncio.sleep(7.0)
+            self.atchance_chime_playing = False
+            yield
+            # visible button deden
+            self.visible_deden_button = "visible"
 
-        ## IF 
+        self.deny_player_button = False
+        yield
+
         print(self.game_state.game.get_board_panels)
         print("from set_panel: current player:", self.player)
         self.select_choices = sorted((rx.get_upload_dir() / pathlib.Path(("csvs"))).glob('*.csv'))
+
+    @rx.event
+    async def play_deden(self):
+        self.atchance_deden_playing = True
+        yield
+        await asyncio.sleep(1.5)
+        self.at_chance_deden_playing = False
+        self.visible_deden_button = "collapse"
+        yield
 
 BG_HIDDEN=101
 BG_SHOW=102
@@ -656,7 +684,14 @@ def lateral_menu():
 
 def index() -> rx.Component:
     return rx.vstack(
-        lateral_menu(),
+        rx.hstack(
+            lateral_menu(),
+            rx.button(
+                "deden",
+                visibility=GameState.visible_deden_button,
+                on_click=GameState.play_deden(),
+            ),
+        ),
         rx.text(f"Game ID: {GameState.game_id}"),
         # rx.cond(
         #     LoginState.open_dialog,
@@ -814,6 +849,46 @@ def index() -> rx.Component:
                     height="10px",
                     playing=GameState.playing[i].bool(),
                 ),
+            ),
+            rx.audio(
+                url=rx.get_upload_url("atchance_chime.mp3"),
+                controls=False,
+                visibility="collapse",
+                width="10px",
+                height="10px",
+                playing=GameState.atchance_chime_playing.bool(),
+            ),
+            rx.audio(
+                url=rx.get_upload_url("atchance_deden.mp3"),
+                controls=False,
+                visibility="collapse",
+                width="10px",
+                height="10px",
+                playing=GameState.atchance_deden_playing.bool(),
+            ),
+            rx.audio(
+                url=rx.get_upload_url("panel_win.mp3"),
+                controls=False,
+                visibility="collapse",
+                width="10px",
+                height="10px",
+                playing=GameState.panel_win_playing.bool(),
+            ),
+            rx.audio(
+                url=rx.get_upload_url("success.mp3"),
+                controls=False,
+                visibility="collapse",
+                width="10px",
+                height="10px",
+                playing=GameState.success.bool(),
+            ),
+            rx.audio(
+                url=rx.get_upload_url("failure.mp3"),
+                controls=False,
+                visibility="collapse",
+                width="10px",
+                height="10px",
+                playing=GameState.failure.bool(),
             ),
         ),
         justify="end",
