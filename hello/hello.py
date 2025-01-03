@@ -590,10 +590,16 @@ def drawer_content():
         rx.flex(
             rx.hstack(
                 rx.drawer.close(
-                    rx.button(
-                        "Close",
+                    rx.icon_button(
+                        rx.icon("x"),
                         on_click=DrawerState.toggle_drawer,
-                    )
+                        type="button",
+                        color_scheme="red",
+                    ),
+                    # rx.button(
+                    #     "Close",
+                    #     on_click=DrawerState.toggle_drawer,
+                    # ),
                 ),
                 rx.select(
                     GameState.select_choices,
@@ -686,6 +692,7 @@ def lateral_menu():
         rx.drawer.overlay(),
         rx.drawer.portal(drawer_content()),
         open=DrawerState.is_open,
+        dismissible=False,
         direction="top",
         modal=False,
     )
