@@ -246,7 +246,6 @@ class GameState(rx.State):
                 self.denied_panels[i] = True
             yield
             self.panels[panel_idx] = CHANCE
-            self.panel_colors[panel_idx] = self.colors[CHANCE]
             self.game_state.game.set_at_chance(panel_idx)
             for p in self.players:
                 self.points[p] = self.panels.count(p)
@@ -307,7 +306,6 @@ class GameState(rx.State):
         self.player = EMPTY
         yield
 
-        self.deny_player_button = False
         for i in range(self.n_panels):
             self.denied_panels[i] = True
         yield
