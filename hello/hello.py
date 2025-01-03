@@ -72,16 +72,24 @@ class GameState(rx.State):
 
     on_edit = {i: False for i in players}
     on_edit_player: int = None
+    deny_player_nameplates = {i: False for i in players}
 
     @rx.event
     def edit_player_name(self, i):
         self.on_edit_player = i
-        self.on_edit[i] = True
+        self.on_edit[self.on_edit_player] = True
+        for j in self.players:
+            if j != self.on_edit_player:
+                self.deny_player_nameplates[j] = True
+
     def set_player_name(self, input: dict):
         print("on_edit:", self.on_edit)
         self.game_player_names[self.on_edit_player] = input["input"]
         print("player_names:", self.game_player_names)
         self.on_edit[self.on_edit_player] = False
+        for j in self.players:
+            if j != self.on_edit_player:
+                self.deny_player_nameplates[j] = False
         print("on_edit:", self.on_edit)
 
     colors = {
@@ -814,7 +822,7 @@ def index() -> rx.Component:
                             on_submit=GameState.set_player_name,
                             reset_on_submit=False,
                         ),
-                        rx.box(
+                        rx.button(
                             GameState.game_player_names[i],
                             width=rx.Var.to_string(GameState.width)+ "vh",
                             text_align="center",
@@ -829,6 +837,7 @@ def index() -> rx.Component:
                             font_weight="bolder",
                             border_radius="4px",
                             on_double_click=GameState.edit_player_name(i),
+                            disabled=GameState.deny_player_nameplates[i].bool(),
                         ),
                     ),
                     rx.button(
