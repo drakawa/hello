@@ -415,11 +415,8 @@ class VideoPlayingState(rx.State):
     playing: bool = False
 
     @rx.event
-    def start_playing(self):
-        self.playing: bool = True
-    @rx.event
-    def stop_playing(self):
-        self.playing: bool = False
+    def switch_playing(self):
+        self.playing = not self.playing
 
 class AudioPlayingState(rx.State):
     atchance_deden_playing: bool = False
@@ -832,10 +829,7 @@ def index() -> rx.Component:
                     "background-size": "200%" + " auto",
                     "-webkit-animation2": "pulse 2s infinite",
                 },
-                on_click=[
-                    VideoPlayingState.stop_playing(),
-                    BackgroundState.show_video(),
-                ],
+                on_click=BackgroundState.show_video(),
             ),
             rx.button(
                 "Click Me to delete_panels",
@@ -855,7 +849,10 @@ def index() -> rx.Component:
                     "background-size": "200%" + " auto",
                     "-webkit-animation2": "pulse 2s infinite",
                 },
-                on_click=VideoPlayingState.start_playing(),
+                on_click=[
+                    AudioPlayingState.switch_vtrq(),
+                    VideoPlayingState.switch_playing(),
+                ],
             ),
             rx.icon_button(
                 rx.icon("check"), 
@@ -921,10 +918,10 @@ def index() -> rx.Component:
                     width=rx.Var.to_string(GameState.panels_width) + "vh",
                     height=rx.Var.to_string(GameState.panels_height) + "vh",
                     position="absolute",
+                    muted=True,
                     controls=False,
-                    on_ready=VideoPlayingState.stop_playing(),
                     playing=VideoPlayingState.playing.bool(),
-                    on_ended=VideoPlayingState.stop_playing(),
+                    on_ended=VideoPlayingState.switch_playing(),
                     # on_ended=[
                     #     BackgroundState.show_lastpic()
                     # ],
@@ -1080,15 +1077,15 @@ def index() -> rx.Component:
                 playing=AudioPlayingState.failure_playing.bool(),
                 on_ended=AudioPlayingState.switch_failure(),
             ),
-        #     rx.audio(
-        #         url=rx.get_upload_url("vtrq.mp3"),
-        #         controls=False,
-        #         visibility="collapse",
-        #         width="10px",
-        #         height="10px",
-        #         playing=AudioPlayingState.vtrq_playing.bool(),
-        #         on_ended=AudioPlayingState.stop_vtrq(),
-        #     ),
+            rx.audio(
+                url=rx.get_upload_url("vtrq.mp3"),
+                controls=False,
+                visibility="collapse",
+                width="10px",
+                height="10px",
+                playing=AudioPlayingState.vtrq_playing.bool(),
+                on_ended=AudioPlayingState.switch_vtrq(),
+            ),
         ),
         justify="end",
         spacing="5"
