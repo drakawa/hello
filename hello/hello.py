@@ -633,7 +633,7 @@ def drawer_content():
                     on_click=GameState.load_state(),
                 ),
                 rx.text(
-                    "Click right to set winner", size="3", width="200px",
+                    "Click right to set winner", size="2", width="250px",
                 ),
                 rx.foreach(
                     GameState.players,
