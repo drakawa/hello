@@ -172,6 +172,19 @@ class GameState(rx.State):
     # 4 FIXED?
     # player_names: dict[int, str] = game_player_names
 
+    #### when playing chime ended, stop playing and show deden button
+    @rx.event
+    def stop_chime_show_deden(self):
+        self.atchance_chime_playing = False
+        self.visible_deden_button = "visible"
+
+    ### when playing deden ended, stop playing and hide deden button
+    @rx.event
+    def stop_hide_deden(self):
+        self.at_chance_deden_playing = False
+        self.visible_deden_button = "collapse"
+
+        
     # 1
     player: int = EMPTY
     winner: int = EMPTY
@@ -321,11 +334,12 @@ class GameState(rx.State):
             # play zingle
             self.atchance_chime_playing = True
             yield
-            await asyncio.sleep(7.0)
-            self.atchance_chime_playing = False
-            yield
+            #### when playing ended, stop playing and show deden button
+            # await asyncio.sleep(7.0)
+            # self.atchance_chime_playing = False
+            # yield
             # visible button deden
-            self.visible_deden_button = "visible"
+            # self.visible_deden_button = "visible"
 
         self.deny_player_button = False
         yield
@@ -337,11 +351,12 @@ class GameState(rx.State):
     @rx.event
     async def play_deden(self):
         self.atchance_deden_playing = True
-        yield
-        await asyncio.sleep(2.0)
-        self.at_chance_deden_playing = False
-        self.visible_deden_button = "collapse"
-        yield
+        ### when playing ended, stop playing and hide deden button
+        # yield
+        # await asyncio.sleep(2.0)
+        # self.at_chance_deden_playing = False
+        # self.visible_deden_button = "collapse"
+        # yield
 
 BG_HIDDEN=101
 BG_SHOW=102
@@ -883,6 +898,7 @@ def index() -> rx.Component:
                 width="10px",
                 height="10px",
                 playing=GameState.atchance_chime_playing.bool(),
+                on_ended=GameState.stop_chime_show_deden(),
             ),
             rx.audio(
                 url=rx.get_upload_url("atchance_deden.mp3"),
@@ -891,6 +907,7 @@ def index() -> rx.Component:
                 width="10px",
                 height="10px",
                 playing=GameState.atchance_deden_playing.bool(),
+                on_ended=GameState.stop_hide_deden(),
             ),
             rx.audio(
                 url=rx.get_upload_url("panel_win.mp3"),
