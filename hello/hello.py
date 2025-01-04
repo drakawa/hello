@@ -248,10 +248,12 @@ class GameState(rx.State):
     def label_players(self) -> dict[str, int]:
        return {l: i for l, i in zip(self.player_radio_labels, self.players)}
     
-    # @rx.event
-    # def set_winner(self, i):
-    #     self.winner = i
-    #     print("from set_winner: winner:", i, self.game_player_names[i])
+
+    radio_unselected = True
+
+    @rx.event
+    def select_player_radio(self, _: str):
+        self.radio_unselected = False
 
     @rx.event
     def set_winner_form(self, form_data: dict):
@@ -727,12 +729,12 @@ def drawer_content():
                         name="radio_choice",
                         direction="row",
                         disabled=AudioPlayingState.panel_win_playing.bool(),
-
+                        on_change=GameState.select_player_radio(),
                     ),
                     rx.button(
                         "You Win", 
                         type="submit", 
-                        disabled=AudioPlayingState.panel_win_playing.bool(),
+                        disabled=AudioPlayingState.panel_win_playing.bool() | GameState.radio_unselected.bool(),
                     ),
                     on_submit=[
                         GameState.set_winner_form,
