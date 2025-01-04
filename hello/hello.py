@@ -43,6 +43,9 @@ conf_txt = pathlib.Path(conf_path).read_text()
 
 delete_oldcsvs(save_path)
 
+# hard_coded
+N_AUDIOS = 7
+
 class AT25(rx.Base):
     game: at25.Attack25
 
@@ -156,10 +159,8 @@ class GameState(rx.State):
     # 25
     denied_panels = [True for _ in range(n_panels)]
 
-    # hard_coded
-    n_audios = 7
-    audios = ["" for _ in range(n_audios)]
-    playing = [False for _ in range(n_audios)]
+    audios = ["" for _ in range(N_AUDIOS)]
+    playing = [False for _ in range(N_AUDIOS)]
 
     atchance_chime_playing: bool = False
     atchance_deden_playing: bool = False
@@ -231,7 +232,7 @@ class GameState(rx.State):
             self.panel_colors[i] = self.colors[panel]
         for i in range(self.n_panels):
             self.denied_panels[i] = True
-        for i in range(self.n_audios):
+        for i in range(N_AUDIOS):
             self.audios[i] = ""
             self.playing[i] = False
         self.player = EMPTY
@@ -273,7 +274,7 @@ class GameState(rx.State):
             selectable_panels = self.game_state.game.get_selectable_panels(p)
             for i in selectable_panels:
                 self.denied_panels[i] = False
-            for i in range(self.n_audios):
+            for i in range(N_AUDIOS):
                 self.audios[i] = self.audiofiles[self.player]
             # get selectable panels from game
             print("from set_player: selectable panels:", 
@@ -344,9 +345,9 @@ class GameState(rx.State):
                 for a_i, i in enumerate(panels_to_flip):
                     self.panels[i] = self.player
                     self.panel_colors[i] = self.colors[self.player]
-                    self.playing[a_i % self.n_audios] = False
+                    self.playing[a_i % N_AUDIOS] = False
                     yield
-                    self.playing[a_i % self.n_audios] = True
+                    self.playing[a_i % N_AUDIOS] = True
                     for p in self.players:
                         self.points[p] = self.panels.count(p)
                     yield
@@ -367,7 +368,7 @@ class GameState(rx.State):
                     return
                     #todo
 
-        for i in range(self.n_audios):
+        for i in range(N_AUDIOS):
             self.playing[i] = False
         self.player = EMPTY
         yield
