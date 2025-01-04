@@ -33,7 +33,7 @@ def delete_oldcsvs(path_to_save):
 
     print(f"{except_csv_files}を除く古いCSVファイルの削除が完了しました。")
 
-INIT_PLAYING_VIDEO = False
+# INIT_PLAYING_VIDEO = False
 udir = rx.get_upload_dir()
 conf_yaml = "config_default.yaml"
 csvs_dir = "csvs"
@@ -384,27 +384,29 @@ class VideoPlayingState(rx.State):
     def stop_playing(self):
         self.playing: bool = False
 
-class VisibleState(rx.State):
-    is_visible: bool = False  # Controls button visibility
+# class VisibleState(rx.State):
+#     is_visible: bool = False  # Controls button visibility
 
-    def toggle_visibility(self):
-        self.is_visible = not self.is_visible
+#     def toggle_visibility(self):
+#         self.is_visible = not self.is_visible
 
-z_ripple = 100
+# z_ripple = 100
 z_panels = 5
 
-def myripple():
-    return {
-                "@keyframes ripple": {
-                "0%": {"box-shadow": f"0 0 0 0 #FFC700FF"},
-                "70%": {"box-shadow": f"0 0 0 20px #FFC70000"},
-                "100%": {"box-shadow": f"0 0 0 0 #FFC70000"},
-                # "z-index": z_ripple,
-                # "position": "relative",
-                },
-                "animation": "ripple 2s infinite",
-                "z-index": z_ripple,
-            }
+# def myripple():
+#     return {
+#                 "@keyframes ripple": {
+#                 "0%": {"box-shadow": f"0 0 0 0 #FFC700FF"},
+#                 "70%": {"box-shadow": f"0 0 0 20px #FFC70000"},
+#                 "100%": {"box-shadow": f"0 0 0 0 #FFC70000"},
+#                 # "z-index": z_ripple,
+#                 # "position": "relative",
+#                 },
+#                 "animation": "ripple 2s infinite",
+#                 "z-index": z_ripple,
+#             }
+
+################# CSS Style sheets ################
 def mydefaultborder(color):
     return {"border": f"1vh solid {color}"}
 
@@ -439,6 +441,8 @@ def mygamingbgcolor(color):
         },
         "animation": f"gamingbgcolor{color[1:]} 1s ease infinite"
     }
+#################################
+
 
 class LoginState(rx.State):
     PASS_HEX_DIGEST = 'b1fab726a375cb2d0e0c5321d35bbfdae5eb76e6' # 
@@ -605,7 +609,6 @@ class DrawerState(rx.State):
     @rx.event
     def toggle_drawer(self):
         self.is_open = not self.is_open
-
 
 def drawer_content():
     return rx.drawer.content(
