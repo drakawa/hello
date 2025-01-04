@@ -185,6 +185,16 @@ class GameState(rx.State):
         self.visible_deden_button = "collapse"
 
     @rx.event
+    def play_deden(self):
+        self.atchance_deden_playing = True
+        ### when playing ended, stop playing and hide deden button
+        # yield
+        # await asyncio.sleep(2.0)
+        # self.at_chance_deden_playing = False
+        # self.visible_deden_button = "collapse"
+        # yield
+
+    @rx.event
     def play_success(self):
         self.success_playing = True
     @rx.event
@@ -360,16 +370,6 @@ class GameState(rx.State):
         print(self.game_state.game.get_board_panels)
         print("from set_panel: current player:", self.player)
         self.select_choices = sorted((rx.get_upload_dir() / pathlib.Path(("csvs"))).glob('*.csv'))
-
-    @rx.event
-    async def play_deden(self):
-        self.atchance_deden_playing = True
-        ### when playing ended, stop playing and hide deden button
-        # yield
-        # await asyncio.sleep(2.0)
-        # self.at_chance_deden_playing = False
-        # self.visible_deden_button = "collapse"
-        # yield
 
 BG_HIDDEN=101
 BG_SHOW=102
