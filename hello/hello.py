@@ -303,6 +303,16 @@ class GameState(rx.State):
         await asyncio.sleep(2.0)
         
     @rx.event
+    async def delete_all_panels(self):
+        for i in range(self.n_panels):
+            if self.visible[i] == "visible":
+                self.visible[i] = "collapse"
+                yield
+                await asyncio.sleep(0.5)
+                print("changed_panel:", i + 1)
+        await asyncio.sleep(2.0)
+        
+    @rx.event
     async def set_panel(self, panel_idx):
         if self.player not in self.players:
             return
@@ -401,7 +411,11 @@ BG_LASTPIC=103
 
 class BackgroundState(rx.State):
     bg = BG_HIDDEN
-    
+
+    @rx.event
+    def hidden(self):
+        self.bg = BG_HIDDEN
+        yield
     @rx.event
     def show_video(self):
         self.bg = BG_SHOW
@@ -865,6 +879,31 @@ def index() -> rx.Component:
                 color_scheme="red",
                 on_click=AudioPlayingState.switch_failure(),
                 disabled=AudioPlayingState.success_playing.bool() | AudioPlayingState.failure_playing.bool(),
+            ),
+            rx.button(
+                "Click Me to delete all panels",
+                _hover={
+                    "color": "red",
+                    "background-position": "right center",
+                    "background-size": "200%" + " auto",
+                    "-webkit-animation2": "pulse 2s infinite",
+                },
+                on_click=[
+                    BackgroundState.hidden(),
+                    BackgroundState.show_video(),
+                    GameState.delete_all_panels(),
+                ]
+
+            ),
+            rx.button(
+                "Click Me to replay video",
+                _hover={
+                    "color": "red",
+                    "background-position": "right center",
+                    "background-size": "200%" + " auto",
+                    "-webkit-animation2": "pulse 2s infinite",
+                },
+                on_click=VideoPlayingState.switch_playing(),
             ),
 
         ),
