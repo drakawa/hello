@@ -164,8 +164,8 @@ class GameState(rx.State):
     atchance_chime_playing: bool = False
     atchance_deden_playing: bool = False
     panel_win_playing: bool = False
-    success: bool = False
-    failure: bool = False
+    success_playing: bool = False
+    failure_playing: bool = False
 
     visible_deden_button: str = "collapse"
     at_chance_deden_playing: bool = False
@@ -184,7 +184,20 @@ class GameState(rx.State):
         self.at_chance_deden_playing = False
         self.visible_deden_button = "collapse"
 
-        
+    @rx.event
+    def play_success(self):
+        self.success_playing = True
+    @rx.event
+    def play_failure(self):
+        self.failure_playing = True
+
+    @rx.event
+    def stop_success(self):
+        self.success_playing = False
+    @rx.event
+    def stop_failure(self):
+        self.failure_playing = False
+
     # 1
     player: int = EMPTY
     winner: int = EMPTY
@@ -733,6 +746,52 @@ def index() -> rx.Component:
                 visibility=GameState.visible_deden_button,
                 on_click=GameState.play_deden(),
             ),
+            rx.button(
+                "Click Me to set video",
+                _hover={
+                    "color": "red",
+                    "background-position": "right center",
+                    "background-size": "200%" + " auto",
+                    "-webkit-animation2": "pulse 2s infinite",
+                },
+                on_click=[
+                    VideoPlayingState.stop_playing(),
+                    BackgroundState.show_video(),
+                ],
+            ),
+            rx.button(
+                "Click Me to delete_panels",
+                _hover={
+                    "color": "red",
+                    "background-position": "right center",
+                    "background-size": "200%" + " auto",
+                    "-webkit-animation2": "pulse 2s infinite",
+                },
+                on_click=GameState.delete_panels(),
+            ),
+            rx.button(
+                "Click Me to play video",
+                _hover={
+                    "color": "red",
+                    "background-position": "right center",
+                    "background-size": "200%" + " auto",
+                    "-webkit-animation2": "pulse 2s infinite",
+                },
+                on_click=VideoPlayingState.start_playing(),
+            ),
+            rx.icon_button(
+                rx.icon("check"), 
+                color_scheme="green",
+                on_click=GameState.play_success(),
+                disabled=GameState.success_playing.bool() | GameState.failure_playing.bool(),
+            ),
+            rx.icon_button(
+                rx.icon("x"), 
+                color_scheme="red",
+                on_click=GameState.play_failure(),
+                disabled=GameState.success_playing.bool() | GameState.failure_playing.bool(),
+            ),
+
         ),
         rx.text(f""),
         # rx.text(f"Game ID: {GameState.game_id}"),
@@ -926,7 +985,8 @@ def index() -> rx.Component:
                 visibility="collapse",
                 width="10px",
                 height="10px",
-                playing=GameState.success.bool(),
+                playing=GameState.success_playing.bool(),
+                on_ended=GameState.stop_success(),
             ),
             rx.audio(
                 url=rx.get_upload_url("failure.mp3"),
@@ -934,7 +994,8 @@ def index() -> rx.Component:
                 visibility="collapse",
                 width="10px",
                 height="10px",
-                playing=GameState.failure.bool(),
+                playing=GameState.failure_playing.bool(),
+                on_ended=GameState.stop_failure(),
             ),
         ),
         justify="end",
