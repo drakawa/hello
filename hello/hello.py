@@ -85,6 +85,7 @@ class GameState(rx.State):
             if j != self.on_edit_player:
                 self.deny_player_nameplates[j] = True
 
+    @rx.event
     def set_player_name(self, input: dict):
         print("on_edit:", self.on_edit)
         self.game_player_names[self.on_edit_player] = input["input"]
