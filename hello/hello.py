@@ -163,13 +163,13 @@ class GameState(rx.State):
     playing = [False for _ in range(N_AUDIOS)]
 
     atchance_chime_playing: bool = False
-    atchance_deden_playing: bool = False
-    panel_win_playing: bool = False
-    success_playing: bool = False
-    failure_playing: bool = False
+    # atchance_deden_playing: bool = False
+    # panel_win_playing: bool = False
+    # success_playing: bool = False
+    # failure_playing: bool = False
 
     visible_deden_button: str = "collapse"
-    at_chance_deden_playing: bool = False
+    # at_chance_deden_playing: bool = False
     # 4 FIXED?
     # player_names: dict[int, str] = game_player_names
 
@@ -182,17 +182,17 @@ class GameState(rx.State):
     ### when playing deden ended, stop playing and hide deden button
     @rx.event
     def stop_hide_deden(self):
-        self.at_chance_deden_playing = False
+        # self.at_chance_deden_playing = False
         self.visible_deden_button = "collapse"
 
     ### when playing panel_win ended, stop playing
-    @rx.event
-    def stop_panel_win(self):
-        self.panel_win_playing = False
+    # @rx.event
+    # def stop_panel_win(self):
+    #     self.panel_win_playing = False
 
-    @rx.event
-    def play_deden(self):
-        self.atchance_deden_playing = True
+    # @rx.event
+    # def play_deden(self):
+    #     self.atchance_deden_playing = True
         ### when playing ended, stop playing and hide deden button
         # yield
         # await asyncio.sleep(2.0)
@@ -200,19 +200,19 @@ class GameState(rx.State):
         # self.visible_deden_button = "collapse"
         # yield
 
-    @rx.event
-    def play_success(self):
-        self.success_playing = True
-    @rx.event
-    def play_failure(self):
-        self.failure_playing = True
+    # @rx.event
+    # def play_success(self):
+    #     self.success_playing = True
+    # @rx.event
+    # def play_failure(self):
+    #     self.failure_playing = True
 
-    @rx.event
-    def stop_success(self):
-        self.success_playing = False
-    @rx.event
-    def stop_failure(self):
-        self.failure_playing = False
+    # @rx.event
+    # def stop_success(self):
+    #     self.success_playing = False
+    # @rx.event
+    # def stop_failure(self):
+    #     self.failure_playing = False
 
     # 1
     player: int = EMPTY
@@ -261,7 +261,7 @@ class GameState(rx.State):
         self.winner = winner
         print("from set_winner_form: winner:", 
               winner, self.game_player_names[winner])
-        self.panel_win_playing = True
+        # self.panel_win_playing = True
 
     @rx.event
     def set_player(self, p):
@@ -421,6 +421,30 @@ class VideoPlayingState(rx.State):
     def stop_playing(self):
         self.playing: bool = False
 
+class AudioPlayingState(rx.State):
+    atchance_deden_playing: bool = False
+    panel_win_playing: bool = False
+    success_playing: bool = False
+    failure_playing: bool = False
+    vtrq_playing: bool = False
+
+    @rx.event
+    def switch_deden(self):
+        self.atchance_deden_playing = not self.atchance_deden_playing
+    @rx.event
+    def switch_panel_win(self, _: dict = None):
+        self.panel_win_playing = not self.panel_win_playing
+        # print("from switch_panel_win:", fd)
+    @rx.event
+    def switch_success(self):
+        self.success_playing = not self.success_playing
+    @rx.event
+    def switch_failure(self):
+        self.failure_playing = not self.failure_playing
+    @rx.event
+    def switch_vtrq(self):
+        self.vtrq_playing = not self.vtrq_playing
+
 # class VisibleState(rx.State):
 #     is_visible: bool = False  # Controls button visibility
 
@@ -506,6 +530,14 @@ class LoginState(rx.State):
             self.open_dialog = False
         else:
             self.message = self.FAILURE
+
+class AhoState(rx.State):
+    mes: str = "do noth"
+
+    @rx.event
+    def do_nothing(self, form_data: dict):
+        print(self.mes)
+        print(form_data)
 
 # class SetNameState(rx.State):
 #     player_idx: int
@@ -683,15 +715,18 @@ def drawer_content():
                         GameState.player_radio_labels,
                         name="radio_choice",
                         direction="row",
-                        disabled=GameState.panel_win_playing.bool(),
+                        disabled=AudioPlayingState.panel_win_playing.bool(),
 
                     ),
                     rx.button(
                         "You Win", 
                         type="submit", 
-                        disabled=GameState.panel_win_playing.bool(),
+                        disabled=AudioPlayingState.panel_win_playing.bool(),
                     ),
-                    on_submit=GameState.set_winner_form,
+                    on_submit=[
+                        GameState.set_winner_form,
+                        AudioPlayingState.switch_panel_win,
+                    ],
                     reset_on_submit=True,
                 ),
 
@@ -786,7 +821,8 @@ def index() -> rx.Component:
             rx.button(
                 "deden",
                 visibility=GameState.visible_deden_button,
-                on_click=GameState.play_deden(),
+                on_click=AudioPlayingState.switch_deden(),
+                disabled=AudioPlayingState.atchance_deden_playing,
             ),
             rx.button(
                 "Click Me to set video",
@@ -824,14 +860,14 @@ def index() -> rx.Component:
             rx.icon_button(
                 rx.icon("check"), 
                 color_scheme="green",
-                on_click=GameState.play_success(),
-                disabled=GameState.success_playing.bool() | GameState.failure_playing.bool(),
+                on_click=AudioPlayingState.switch_success(),
+                disabled=AudioPlayingState.success_playing.bool() | AudioPlayingState.failure_playing.bool(),
             ),
             rx.icon_button(
                 rx.icon("x"), 
                 color_scheme="red",
-                on_click=GameState.play_failure(),
-                disabled=GameState.success_playing.bool() | GameState.failure_playing.bool(),
+                on_click=AudioPlayingState.switch_failure(),
+                disabled=AudioPlayingState.success_playing.bool() | AudioPlayingState.failure_playing.bool(),
             ),
 
         ),
@@ -1010,8 +1046,12 @@ def index() -> rx.Component:
                 visibility="collapse",
                 width="10px",
                 height="10px",
-                playing=GameState.atchance_deden_playing.bool(),
-                on_ended=GameState.stop_hide_deden(),
+                playing=AudioPlayingState.atchance_deden_playing.bool(),
+                on_ended=[
+                    GameState.stop_hide_deden(),
+                    AudioPlayingState.switch_deden(),
+                ]
+                          
             ),
             rx.audio(
                 url=rx.get_upload_url("panel_win.mp3"),
@@ -1019,8 +1059,8 @@ def index() -> rx.Component:
                 visibility="collapse",
                 width="10px",
                 height="10px",
-                playing=GameState.panel_win_playing.bool(),
-                on_ended=GameState.stop_panel_win(),
+                playing=AudioPlayingState.panel_win_playing.bool(),
+                on_ended=AudioPlayingState.switch_panel_win(),
             ),
             rx.audio(
                 url=rx.get_upload_url("success.mp3"),
@@ -1028,8 +1068,8 @@ def index() -> rx.Component:
                 visibility="collapse",
                 width="10px",
                 height="10px",
-                playing=GameState.success_playing.bool(),
-                on_ended=GameState.stop_success(),
+                playing=AudioPlayingState.success_playing.bool(),
+                on_ended=AudioPlayingState.switch_success(),
             ),
             rx.audio(
                 url=rx.get_upload_url("failure.mp3"),
@@ -1037,9 +1077,18 @@ def index() -> rx.Component:
                 visibility="collapse",
                 width="10px",
                 height="10px",
-                playing=GameState.failure_playing.bool(),
-                on_ended=GameState.stop_failure(),
+                playing=AudioPlayingState.failure_playing.bool(),
+                on_ended=AudioPlayingState.switch_failure(),
             ),
+        #     rx.audio(
+        #         url=rx.get_upload_url("vtrq.mp3"),
+        #         controls=False,
+        #         visibility="collapse",
+        #         width="10px",
+        #         height="10px",
+        #         playing=AudioPlayingState.vtrq_playing.bool(),
+        #         on_ended=AudioPlayingState.stop_vtrq(),
+        #     ),
         ),
         justify="end",
         spacing="5"
