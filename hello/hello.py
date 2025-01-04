@@ -184,6 +184,11 @@ class GameState(rx.State):
         self.at_chance_deden_playing = False
         self.visible_deden_button = "collapse"
 
+    ### when playing panel_win ended, stop playing
+    @rx.event
+    def stop_panel_win(self):
+        self.panel_win_playing = False
+
     @rx.event
     def play_deden(self):
         self.atchance_deden_playing = True
@@ -234,10 +239,28 @@ class GameState(rx.State):
         self.deny_player_button = False
         self.set_at_chance = False
 
+    
+    @rx.var
+    def player_radio_labels(self) -> list[str]:
+        return [(f"{self.game_player_names[i]} ({self.points[i]})") for i in self.players]
+    @rx.var
+    def label_players(self) -> dict[str, int]:
+       return {l: i for l, i in zip(self.player_radio_labels, self.players)}
+    
+    # @rx.event
+    # def set_winner(self, i):
+    #     self.winner = i
+    #     print("from set_winner: winner:", i, self.game_player_names[i])
 
-    def set_winner(self, i):
-        self.winner = i
-        print("from set_winner: winner:", i, self.game_player_names[i])
+    @rx.event
+    def set_winner_form(self, form_data: dict):
+        """Handle the form submit."""
+        print(form_data)
+        winner = self.label_players[form_data["radio_choice"]]
+        self.winner = winner
+        print("from set_winner_form: winner:", 
+              winner, self.game_player_names[winner])
+        self.panel_win_playing = True
 
     @rx.event
     def set_player(self, p):
@@ -639,6 +662,9 @@ def drawer_content():
                     #     on_click=DrawerState.toggle_drawer,
                     # ),
                 ),
+                rx.text(
+                    "Load⇒", size="2", width="60px",
+                ),
                 rx.select(
                     GameState.select_choices,
                     value=GameState.selected_value,
@@ -649,65 +675,80 @@ def drawer_content():
                     on_click=GameState.load_state(),
                 ),
                 rx.text(
-                    "Click right to set winner", size="2", width="250px",
+                    "Select the winner...", size="2", width="400px",
                 ),
-                rx.foreach(
-                    GameState.players,
-                    lambda i: rx.button(
-                        f"{GameState.game_player_names[i]} ({GameState.points[i]})",
-                        background_color=GameState.colors[i],
-                        color='black',
-                        on_click=GameState.set_winner(i),
+                rx.form.root(
+                    rx.radio_group(
+                        GameState.player_radio_labels,
+                        name="radio_choice",
+                        direction="row",
+                        disabled=GameState.panel_win_playing.bool(),
+
                     ),
-                ),
-            ),
-            rx.hstack(
-            rx.form(
-                rx.hstack(
-                    rx.input(
-                        placeholder="vtrq_pass",
-                        name="vtrq_pass",
-                        type="password",
+                    rx.button(
+                        "You Win", 
+                        type="submit", 
+                        disabled=GameState.panel_win_playing.bool(),
                     ),
-                    rx.button("Submit", type="submit"),
+                    on_submit=GameState.set_winner_form,
+                    reset_on_submit=True,
                 ),
-                on_submit=GameState.auth_vtrq,
-                reset_on_submit=True,
-            ),
-            rx.button(
-                "Click Me to set video",
-                _hover={
-                    "color": "red",
-                    "background-position": "right center",
-                    "background-size": "200%" + " auto",
-                    "-webkit-animation2": "pulse 2s infinite",
-                },
-                on_click=[
-                    VideoPlayingState.stop_playing(),
-                    BackgroundState.show_video(),
-                ]
-            ),
-            rx.button(
-                "Click Me to delete_panels",
-                _hover={
-                    "color": "red",
-                    "background-position": "right center",
-                    "background-size": "200%" + " auto",
-                    "-webkit-animation2": "pulse 2s infinite",
-                },
-                on_click=GameState.delete_panels(),
-            ),
-            rx.button(
-                "Click Me to play video",
-                _hover={
-                    "color": "red",
-                    "background-position": "right center",
-                    "background-size": "200%" + " auto",
-                    "-webkit-animation2": "pulse 2s infinite",
-                },
-                on_click=VideoPlayingState.start_playing(),
-            ),
-            rx.text(f"Game ID: {GameState.game_id}", size="1", width="400px"),
+
+                # rx.foreach(
+                #     GameState.players,
+                #     lambda i: rx.button(
+                #         f"{GameState.game_player_names[i]} ({GameState.points[i]})",
+                #         background_color=GameState.colors[i],
+                #         color='black',
+                #         on_click=GameState.set_winner(i),
+                #     ),
+                # ),
+                rx.form(
+                    rx.hstack(
+                        rx.input(
+                            placeholder="vtrq_pass",
+                            name="vtrq_pass",
+                            type="password",
+                        ),
+                        rx.button("Submit", type="submit"),
+                    ),
+                    on_submit=GameState.auth_vtrq,
+                    reset_on_submit=True,
+                ),
+                # rx.button(
+                #     "Click Me to set video",
+                #     _hover={
+                #         "color": "red",
+                #         "background-position": "right center",
+                #         "background-size": "200%" + " auto",
+                #         "-webkit-animation2": "pulse 2s infinite",
+                #     },
+                #     on_click=[
+                #         VideoPlayingState.stop_playing(),
+                #         BackgroundState.show_video(),
+                #     ],
+                # ),
+                # rx.button(
+                #     "Click Me to delete_panels",
+                #     _hover={
+                #         "color": "red",
+                #         "background-position": "right center",
+                #         "background-size": "200%" + " auto",
+                #         "-webkit-animation2": "pulse 2s infinite",
+                #     },
+                #     on_click=GameState.delete_panels(),
+                # ),
+                # rx.button(
+                #     "Click Me to play video",
+                #     _hover={
+                #         "color": "red",
+                #         "background-position": "right center",
+                #         "background-size": "200%" + " auto",
+                #         "-webkit-animation2": "pulse 2s infinite",
+                #     },
+                #     on_click=VideoPlayingState.start_playing(),
+                # ),
+                rx.text(f"Game ID: {GameState.game_id}", size="1", width="400px"),
 
             ),
             align_items="start",
@@ -978,6 +1019,7 @@ def index() -> rx.Component:
                 width="10px",
                 height="10px",
                 playing=GameState.panel_win_playing.bool(),
+                on_ended=GameState.stop_panel_win(),
             ),
             rx.audio(
                 url=rx.get_upload_url("success.mp3"),
