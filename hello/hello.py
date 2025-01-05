@@ -470,10 +470,24 @@ class BackgroundState(rx.State):
 
 class VideoPlayingState(rx.State):
     playing: bool = False
+    vtrq_ans: str
+    valid_vtrq_ans: bool = False
+    replaying: bool = False
+    
+    @rx.event
+    def switch_playing(self, is_replay=False):
+        self.playing = not self.playing
+        if self.replaying:
+            self.replaying = not self.replaying
+            self.valid_vtrq_ans = True
+        elif is_replay:
+            self.replaying = not self.replaying
+            self.valid_vtrq_ans = False
+
 
     @rx.event
-    def switch_playing(self):
-        self.playing = not self.playing
+    def set_vtrq_ans(self, input: dict):
+        self.vtrq_ans = input["vtrq_ans"]
 
 class AudioPlayingState(rx.State):
     atchance_deden_playing: bool = False
@@ -971,7 +985,19 @@ def index() -> rx.Component:
                     "background-size": "200%" + " auto",
                     "-webkit-animation2": "pulse 2s infinite",
                 },
-                on_click=VideoPlayingState.switch_playing(),
+                on_click=VideoPlayingState.switch_playing(True),
+            ),
+            rx.form(
+                rx.hstack(
+                    rx.input(
+                        placeholder="vtrq_ans",
+                        name="vtrq_ans",
+                        type="vtrq_ans",
+                    ),
+                    rx.button("Submit", type="submit"),
+                ),
+                on_submit=VideoPlayingState.set_vtrq_ans,
+                reset_on_submit=True,
             ),
 
         ),
@@ -1059,8 +1085,29 @@ def index() -> rx.Component:
 
                 # ),
             ),
+            rx.cond(
+                VideoPlayingState.valid_vtrq_ans.bool(),
+                rx.box(
+                    VideoPlayingState.vtrq_ans,
+                    z_index=10000,
+                    background_color="#FF7628FF",
+                    border_radius="10px",
+                    font_size="10vh",
+                    font_weight="bolder",
+                    position="absolute",
+                    top="55%",
+
+                ),
+                rx.text("",
+                    z_index=10000,
+                    size="9",
+                    position="absolute",
+                    visibility="collapse",
+                ),
+            ),
             width="100%",
         ),
+        rx.text(""),
         rx.hstack(
             rx.foreach(
                 GameState.players,
