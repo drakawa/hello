@@ -152,6 +152,44 @@ class GameState(rx.State):
     vtrq_mp4 = VTRQ_MP4_DEFAULT
     vtrq_lastpic = "lastpic_sample.jpg"
 
+    vtrq_filename = f"vtrq_{game_id}.mp4"
+    vtrq_file = os.path.join("mp4s", vtrq_filename)
+    vtrq_filepath = rx.get_upload_dir() / pathlib.Path("mp4s") / pathlib.Path(vtrq_filename)
+
+    @rx.var
+    def vtrq_filepath_url(self) -> str:
+        return str(self.vtrq_filepath)
+
+    @rx.event
+    def rename_vtrq(self, orig_filename):
+        print("do rename_vtrq")
+        print(orig_filename)
+        orig_filepath = rx.get_upload_dir() / pathlib.Path("mp4s") / pathlib.Path(orig_filename)
+        print(orig_filepath)
+        print(self.vtrq_filepath)
+        orig_filepath.rename(self.vtrq_filepath)
+
+    @rx.event
+    def delete_oldmp4s(self):
+        path_to_save = rx.get_upload_dir() / pathlib.Path("mp4s")
+        mp4_files = [
+            os.path.join(path_to_save, f)
+            for f in os.listdir(path_to_save)
+            if f.endswith(".mp4")
+        ]
+        mp4_files.sort(key=os.path.getmtime, reverse=True)
+
+        # 最新5個以外のファイルを削除
+        files_to_delete = mp4_files[5:]  # 100個目以降のファイル
+        for file in files_to_delete:
+            try:
+                os.remove(file)
+                print(f"Deleted: {file}")
+            except Exception as e:
+                print(f"Error deleting {file}: {e}")
+
+        print("古いMP4ファイルの削除が完了しました。")
+
     @rx.event
     def auth_vtrq(self, form_data: dict):
         PASS_HEX_DIGEST = 'b1fab726a375cb2d0e0c5321d35bbfdae5eb76e6' # 
@@ -599,6 +637,49 @@ class LoginState(rx.State):
         else:
             self.message = self.FAILURE
 
+class UploadState(rx.State):
+    uploading: bool = False
+    status: str = ""
+    filename: str
+    file_not_uploaded_yet = True
+    progress: int = 0
+    total_bytes: int = 0
+
+    @rx.event
+    async def handle_upload(self, files: list[rx.UploadFile]):
+        """Handle the upload of file(s).
+        """
+        file: rx.UploadFile
+        if isinstance(files, list):
+            file = files[0]
+        else:
+            file = files
+
+        self.filename = file.filename
+        outfile = rx.get_upload_dir() / pathlib.Path("mp4s") / pathlib.Path(self.filename)
+
+        # Save the file.
+        chunk_size = 1_000_000
+        with outfile.open("wb") as file_object:
+            while chunk := await file.read(chunk_size):
+                file_object.write(chunk)
+                self.total_bytes += chunk_size
+
+        self.status = f"{self.filename} uploaded!"
+        self.file_not_uploaded_yet = False
+
+    @rx.event
+    def handle_upload_progress(self, progress: dict):
+        self.uploading = True
+        self.progress = round(progress["progress"] * 100)
+        if self.progress >= 100:
+            self.uploading = False
+
+    @rx.event
+    def cancel_upload(self):
+        self.uploading = False
+        return rx.cancel_upload("upload_vtrq")
+
 class AhoState(rx.State):
     mes: str = "do noth"
 
@@ -834,20 +915,71 @@ def drawer_content():
                         width="10em",
                     ),
                     border="1px dotted yellow",
+
+                    accept={
+                        "video/mp4": [".mp4"],
+                    },
+                    max_size=100_000_000, # 100MB
+                    multiple=False,
+                    id="upload_vtrq",
                     padding="0",
                 ),
-                rx.form(
-                    rx.hstack(
-                        rx.input(
-                            placeholder="vtrq_pass",
-                            name="vtrq_pass",
-                            type="password",
+                rx.text(rx.selected_files("upload_vtrq")),
+                # rx.button(
+                #     "Upload VTR",
+                #     type="button",
+                #     on_click=UploadState.handle_upload(
+                #             rx.upload_files(
+                #                 upload_id="upload_vtrq", 
+                #                 on_upload_progress=UploadState.handle_upload_progress,
+                #             )
+                #     ),
+                # ),
+                rx.vstack(
+                rx.cond(
+                    ~UploadState.uploading.bool(),
+                    rx.button(
+                        "Upload VTR",
+                        on_click=UploadState.handle_upload(
+                            rx.upload_files(
+                                upload_id="upload_vtrq",
+                                on_upload_progress=UploadState.handle_upload_progress,
+                            ),
                         ),
-                        rx.button("Submit", type="submit"),
+                        size="1",
                     ),
-                    on_submit=GameState.auth_vtrq,
-                    reset_on_submit=True,
+                    rx.button(
+                        "Cancel",
+                        on_click=UploadState.cancel_upload,
+                        size="1",
+                    ),
                 ),
+                rx.progress(value=UploadState.progress, max=100, width="100%"),
+                rx.text(
+                    f"Uploaded: {UploadState.total_bytes / 1_000_000} MB",
+                    size="1",
+                ),
+                padding="0",
+                ),
+                # rx.progress(value=UploadState.progress, max=100),
+                rx.button(
+                    "Prepare VTR",
+                    type="button",
+                    disabled=UploadState.file_not_uploaded_yet,
+                    on_click=GameState.rename_vtrq(UploadState.filename)
+                ),
+                # rx.form(
+                #     rx.hstack(
+                #         rx.input(
+                #             placeholder="vtrq_pass",
+                #             name="vtrq_pass",
+                #             type="password",
+                #         ),
+                #         rx.button("Submit", type="submit"),
+                #     ),
+                #     on_submit=GameState.auth_vtrq,
+                #     reset_on_submit=True,
+                # ),
                 # rx.button(
                 #     "Click Me to set video",
                 #     _hover={
@@ -1051,7 +1183,8 @@ def index() -> rx.Component:
                     z_index=3,
                 ),
                 rx.video(
-                    url=rx.get_upload_url(GameState.vtrq_mp4),
+                    # url=rx.get_upload_url(GameState.vtrq_filename),
+                    url=rx.get_upload_url(GameState.vtrq_file),
                     width=rx.Var.to_string(GameState.panels_width) + "vh",
                     height=rx.Var.to_string(GameState.panels_height) + "vh",
                     position="absolute",
@@ -1247,7 +1380,10 @@ def index() -> rx.Component:
         ),
         justify="end",
         spacing="3",
-        on_mount=GameState.delete_oldcsvs,
+        on_mount=[
+            GameState.delete_oldcsvs,
+            GameState.delete_oldmp4s,
+        ],
     )
 
 app = rx.App()
