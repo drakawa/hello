@@ -84,7 +84,7 @@ class GameState(rx.State):
     print(players)
     game_player_names: dict[int, str] = {
         i: f"player{i}" for i in players
-    }
+    } | {EMPTY: "None"}
 
     on_edit = {i: False for i in players}
     on_edit_player: int = None
@@ -287,12 +287,15 @@ class GameState(rx.State):
        return {l: i for l, i in zip(self.player_radio_labels, self.players)}
     
 
-    radio_unselected = True
+    radio_unselected: bool = True
+    radio_selected_winner: int = EMPTY
 
     @rx.event
-    def select_player_radio(self, _: str):
+    def select_player_radio(self, item: str):
+        print(item)
         self.radio_unselected = False
-
+        radio_selected_winner = self.label_players[item]
+        self.radio_selected_winner = radio_selected_winner
     @rx.event
     def set_winner_form(self, form_data: dict):
         """Handle the form submit."""
@@ -767,12 +770,21 @@ def drawer_content():
                         name="radio_choice",
                         direction="row",
                         disabled=AudioPlayingState.panel_win_playing.bool(),
-                        on_change=GameState.select_player_radio(),
+                        on_change=GameState.select_player_radio,
                     ),
-                    rx.button(
-                        "You Win", 
-                        type="submit", 
-                        disabled=AudioPlayingState.panel_win_playing.bool() | GameState.radio_unselected.bool(),
+                    rx.hstack(
+                        rx.box(
+                            GameState.game_player_names[GameState.radio_selected_winner],
+                            color="black",
+                            background_color=GameState.colors[GameState.radio_selected_winner],
+                            # color_scheme= lambda l: GameState.label_colors[l],
+                        ),
+                        rx.button(
+                            "You Win", 
+                            type="submit", 
+                            disabled=AudioPlayingState.panel_win_playing.bool() | GameState.radio_unselected.bool(),
+                        ),
+
                     ),
                     on_submit=[
                         GameState.set_winner_form,
@@ -861,7 +873,7 @@ def drawer_content():
         height="75px",
         width="100%",
         padding="0em",
-        background_color=rx.color("grass", 7),
+        background_color=rx.color("gray", 7),
     )
 
 def lateral_menu():
