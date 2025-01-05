@@ -1062,7 +1062,7 @@ def index() -> rx.Component:
             rx.foreach(
                 GameState.audios,
                 lambda a, i: rx.audio(
-                    url=rx.get_upload_url(a.to_string(use_json=False)),
+                    url="/" + a.to_string(use_json=False),
                     controls=False,
                     visibility="collapse",
                     width="10px",
@@ -1071,7 +1071,7 @@ def index() -> rx.Component:
                 ),
             ),
             rx.audio(
-                url=rx.get_upload_url("atchance_chime.mp3"),
+                url="/atchance_chime.mp3",
                 controls=False,
                 visibility="collapse",
                 width="10px",
@@ -1080,7 +1080,7 @@ def index() -> rx.Component:
                 on_ended=GameState.stop_chime_show_deden(),
             ),
             rx.audio(
-                url=rx.get_upload_url("atchance_deden.mp3"),
+                url="/atchance_deden.mp3",
                 controls=False,
                 visibility="collapse",
                 width="10px",
@@ -1093,7 +1093,7 @@ def index() -> rx.Component:
                           
             ),
             rx.audio(
-                url=rx.get_upload_url("panel_win.mp3"),
+                url="/panel_win.mp3",
                 controls=False,
                 visibility="collapse",
                 width="10px",
@@ -1102,7 +1102,7 @@ def index() -> rx.Component:
                 on_ended=AudioPlayingState.switch_panel_win(),
             ),
             rx.audio(
-                url=rx.get_upload_url("success.mp3"),
+                url="/success.mp3",
                 controls=False,
                 visibility="collapse",
                 width="10px",
@@ -1111,7 +1111,7 @@ def index() -> rx.Component:
                 on_ended=AudioPlayingState.switch_success(),
             ),
             rx.audio(
-                url=rx.get_upload_url("failure.mp3"),
+                url="/failure.mp3",
                 controls=False,
                 visibility="collapse",
                 width="10px",
@@ -1120,7 +1120,7 @@ def index() -> rx.Component:
                 on_ended=AudioPlayingState.switch_failure(),
             ),
             rx.audio(
-                url=rx.get_upload_url("vtrq.mp3"),
+                url="/vtrq.mp3",
                 controls=False,
                 visibility="collapse",
                 width="10px",
