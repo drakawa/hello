@@ -747,7 +747,7 @@ def drawer_content():
                     # ),
                 ),
                 rx.text(
-                    "Load⇒", size="2", width="60px",
+                    "Load Panels⇒", size="2", width="10em",
                 ),
                 rx.select(
                     GameState.select_choices,
@@ -779,6 +779,7 @@ def drawer_content():
                         AudioPlayingState.switch_panel_win,
                     ],
                     reset_on_submit=True,
+                    padding="0",
                 ),
 
                 # rx.foreach(
@@ -790,6 +791,21 @@ def drawer_content():
                 #         on_click=GameState.set_winner(i),
                 #     ),
                 # ),
+                rx.upload(
+                    rx.button(
+                        "Select File",
+                        color="blue",
+                        bg="white",
+                        border=f"1px solid blue",
+                        width="8em",
+                    ),
+                    rx.text(
+                        "or Drag and drop",
+                        width="10em",
+                    ),
+                    border="1px dotted yellow",
+                    padding="0",
+                ),
                 rx.form(
                     rx.hstack(
                         rx.input(
@@ -867,8 +883,8 @@ def lateral_menu():
 
 def index() -> rx.Component:
     return rx.vstack(
+        lateral_menu(),
         rx.hstack(
-            lateral_menu(),
             rx.button(
                 "deden",
                 visibility=GameState.visible_deden_button,
@@ -1167,7 +1183,7 @@ def index() -> rx.Component:
             ),
         ),
         justify="end",
-        spacing="5",
+        spacing="3",
         on_mount=GameState.delete_oldcsvs,
     )
 
