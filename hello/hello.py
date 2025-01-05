@@ -11,37 +11,40 @@ from at25 import WALL, FIRST, CHANCE, EMPTY, DELETED, DEALER
 import hashlib, secrets
 import yaml
 
-def delete_oldcsvs(path_to_save):
+# def delete_oldcsvs(path_to_save):
 
-    # ディレクトリ内のCSVファイルを特定ファイルを除いて取得し、更新日時順にソート
-    except_csv_files = ["aat25_init.csv",]
-    csv_files = [
-        os.path.join(path_to_save, f)
-        for f in os.listdir(path_to_save)
-        if f.endswith(".csv") and f not in except_csv_files
-    ]
-    csv_files.sort(key=os.path.getmtime, reverse=True)
+#     # ディレクトリ内のCSVファイルを特定ファイルを除いて取得し、更新日時順にソート
+#     except_csv_files = ["aat25_init.csv",]
+#     csv_files = [
+#         os.path.join(path_to_save, f)
+#         for f in os.listdir(path_to_save)
+#         if f.endswith(".csv") and f not in except_csv_files
+#     ]
+#     csv_files.sort(key=os.path.getmtime, reverse=True)
 
-    # 最新100個以外のファイルを削除
-    files_to_delete = csv_files[100:]  # 100個目以降のファイル
-    for file in files_to_delete:
-        try:
-            os.remove(file)
-            print(f"Deleted: {file}")
-        except Exception as e:
-            print(f"Error deleting {file}: {e}")
+#     # 最新100個以外のファイルを削除
+#     files_to_delete = csv_files[100:]  # 100個目以降のファイル
+#     for file in files_to_delete:
+#         try:
+#             os.remove(file)
+#             print(f"Deleted: {file}")
+#         except Exception as e:
+#             print(f"Error deleting {file}: {e}")
 
-    print(f"{except_csv_files}を除く古いCSVファイルの削除が完了しました。")
+#     print(f"{except_csv_files}を除く古いCSVファイルの削除が完了しました。")
 
 # INIT_PLAYING_VIDEO = False
-udir = rx.get_upload_dir()
-conf_yaml = "config_default.yaml"
-csvs_dir = "csvs"
-conf_path = os.path.join(udir, conf_yaml)
-save_path = os.path.join(udir, csvs_dir)
-conf_txt = pathlib.Path(conf_path).read_text()
+# ldir = "/"
+# udir = rx.get_upload_dir()
 
-delete_oldcsvs(save_path)
+# conf_yaml = "config_default.yaml"
+# csvs_dir = "csvs"
+
+# conf_path = os.path.join(ldir, conf_yaml)
+# save_path = os.path.join(udir, csvs_dir)
+# conf_txt = pathlib.Path(conf_path).read_text()
+
+# delete_oldcsvs(save_path)
 
 # hard_coded
 N_AUDIOS = 7
@@ -50,6 +53,16 @@ class AT25(rx.Base):
     game: at25.Attack25
 
 class GameState(rx.State):
+    ldir = "_data"
+    udir = rx.get_upload_dir()
+
+    conf_yaml = "config_default.yaml"
+    csvs_dir = "csvs"
+
+    conf_path = os.path.join(ldir, conf_yaml)
+    save_path = os.path.join(udir, csvs_dir)
+    # conf_txt = pathlib.Path(conf_path).read_text()
+
     game_state: AT25 = AT25(
         game = at25.Attack25(conf_path, save_path)
     )
@@ -76,6 +89,30 @@ class GameState(rx.State):
     on_edit = {i: False for i in players}
     on_edit_player: int = None
     deny_player_nameplates = {i: False for i in players}
+
+    @rx.event
+    def delete_oldcsvs(self):
+        path_to_save = self.save_path
+
+        # ディレクトリ内のCSVファイルを特定ファイルを除いて取得し、更新日時順にソート
+        except_csv_files = ["aat25_init.csv",]
+        csv_files = [
+            os.path.join(path_to_save, f)
+            for f in os.listdir(path_to_save)
+            if f.endswith(".csv") and f not in except_csv_files
+        ]
+        csv_files.sort(key=os.path.getmtime, reverse=True)
+
+        # 最新100個以外のファイルを削除
+        files_to_delete = csv_files[100:]  # 100個目以降のファイル
+        for file in files_to_delete:
+            try:
+                os.remove(file)
+                print(f"Deleted: {file}")
+            except Exception as e:
+                print(f"Error deleting {file}: {e}")
+
+        print(f"{except_csv_files}を除く古いCSVファイルの削除が完了しました。")
 
     @rx.event
     def edit_player_name(self, i):
@@ -1130,7 +1167,8 @@ def index() -> rx.Component:
             ),
         ),
         justify="end",
-        spacing="5"
+        spacing="5",
+        on_mount=GameState.delete_oldcsvs,
     )
 
 app = rx.App()
