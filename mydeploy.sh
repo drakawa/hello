@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CURRENT=$(cd "$(dirname "$0")" || return ;pwd)
-cd uploaded_files/mp4s || return
+cd uploaded_files/ || return
 for f in *.mp4 ; do
     rm -f "${f}"
 done
