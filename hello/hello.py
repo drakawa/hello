@@ -776,38 +776,42 @@ def drawer_content():
                     on_click=GameState.load_state(),
                 ),
                 rx.text(
-                    "Select the winner...", size="2", width="400px",
+                    "Select the winner...", size="2", width="100px",
                 ),
-                rx.form.root(
-                    rx.radio_group(
-                        GameState.player_radio_labels,
-                        name="radio_choice",
-                        direction="row",
-                        disabled=AudioPlayingState.panel_win_playing.bool(),
-                        on_change=GameState.select_player_radio,
-                    ),
-                    rx.hstack(
-                        rx.box(
-                            GameState.game_player_names[GameState.radio_selected_winner],
-                            color="black",
-                            background_color=GameState.colors[GameState.radio_selected_winner],
-                            # color_scheme= lambda l: GameState.label_colors[l],
+                rx.card(
+                    rx.form.root(
+                        rx.radio_group(
+                            GameState.player_radio_labels,
+                            name="radio_choice",
+                            direction="row",
+                            disabled=AudioPlayingState.panel_win_playing.bool(),
+                            on_change=GameState.select_player_radio,
+                            padding="0",
                         ),
-                        rx.button(
-                            "You Win", 
-                            type="submit", 
-                            disabled=AudioPlayingState.panel_win_playing.bool() | GameState.radio_unselected.bool(),
-                        ),
+                        rx.hstack(
+                            rx.box(
+                                GameState.game_player_names[GameState.radio_selected_winner],
+                                color="black",
+                                background_color=GameState.colors[GameState.radio_selected_winner],
+                                # color_scheme= lambda l: GameState.label_colors[l],
+                            ),
+                            rx.button(
+                                "You Win", 
+                                type="submit", 
+                                disabled=AudioPlayingState.panel_win_playing.bool() | GameState.radio_unselected.bool(),
+                            ),
+                            padding="0",
 
+                        ),
+                        on_submit=[
+                            GameState.set_winner_form,
+                            AudioPlayingState.switch_panel_win,
+                        ],
+                        reset_on_submit=True,
+                        padding="0",
                     ),
-                    on_submit=[
-                        GameState.set_winner_form,
-                        AudioPlayingState.switch_panel_win,
-                    ],
-                    reset_on_submit=True,
-                    padding="0",
+                    width="35em",
                 ),
-
                 # rx.foreach(
                 #     GameState.players,
                 #     lambda i: rx.button(
