@@ -1,0 +1,16 @@
+player_colors:
+    - red: "#EC0000FF"
+    - green: "#7EB40DFF"
+    - white: "#FFFFFFFF"
+    - blue: "#3460FBFF"
+    # - sky: "#39ABFFFF"
+    # - pink: "#F137F1FF"
+    # - purple: "#A565F8FF"
+    # - orange: "#FFA66DFF"
+at_chances: [5]
+init_board: # EMPTY: 0, FIRST: -2, WALL; -1, TEAMS >= 1
+    - [0, 0, 0, 0, 0]
+    - [0, 0, 0, 0, 0]
+    - [0, 0, -2, 0, 0]
+    - [0, 0, 0, 0, 0]
+    - [0, 0, 0, 0, 0]
