@@ -57,10 +57,9 @@ class GameState(rx.State):
     udir = rx.get_upload_dir()
 
     conf_yaml = "config_default.yaml"
-    csvs_dir = "csvs"
 
     conf_path = os.path.join(ldir, conf_yaml)
-    save_path = os.path.join(udir, csvs_dir)
+    save_path = udir
     # conf_txt = pathlib.Path(conf_path).read_text()
 
     game_state: AT25 = AT25(
@@ -148,13 +147,9 @@ class GameState(rx.State):
 
     game_id: int = game_state.game.get_game_id()
 
-    VTRQ_MP4_DEFAULT = "vtrq_sample.mp4"
-    vtrq_mp4 = VTRQ_MP4_DEFAULT
-    vtrq_lastpic = "lastpic_sample.jpg"
-
     vtrq_filename = f"vtrq_{game_id}.mp4"
-    vtrq_file = os.path.join("mp4s", vtrq_filename)
-    vtrq_filepath = rx.get_upload_dir() / pathlib.Path("mp4s") / pathlib.Path(vtrq_filename)
+    vtrq_file = vtrq_filename
+    vtrq_filepath = rx.get_upload_dir() / pathlib.Path(vtrq_filename)
 
     @rx.var
     def vtrq_filepath_url(self) -> str:
@@ -164,14 +159,14 @@ class GameState(rx.State):
     def rename_vtrq(self, orig_filename):
         print("do rename_vtrq")
         print(orig_filename)
-        orig_filepath = rx.get_upload_dir() / pathlib.Path("mp4s") / pathlib.Path(orig_filename)
+        orig_filepath = rx.get_upload_dir() / pathlib.Path(orig_filename)
         print(orig_filepath)
         print(self.vtrq_filepath)
         orig_filepath.rename(self.vtrq_filepath)
 
     @rx.event
     def delete_oldmp4s(self):
-        path_to_save = rx.get_upload_dir() / pathlib.Path("mp4s")
+        path_to_save = rx.get_upload_dir()
         mp4_files = [
             os.path.join(path_to_save, f)
             for f in os.listdir(path_to_save)
@@ -208,7 +203,7 @@ class GameState(rx.State):
             return rx.toast.warning("INVALID password.")
 
     selected_value: str = ""
-    select_choices: list[str] = sorted((rx.get_upload_dir() / pathlib.Path(("csvs"))).glob('*.csv'))
+    select_choices: list[str] = sorted(rx.get_upload_dir().glob('*.csv'))
 
     panels = [EMPTY for _ in range(n_panels)]
     points = {p: 0 for p in players}
@@ -484,7 +479,7 @@ class GameState(rx.State):
 
         print(self.game_state.game.get_board_panels)
         print("from set_panel: current player:", self.player)
-        self.select_choices = sorted((rx.get_upload_dir() / pathlib.Path(("csvs"))).glob('*.csv'))
+        self.select_choices = sorted(rx.get_upload_dir().glob('*.csv'))
 
 BG_HIDDEN=101
 BG_SHOW=102
@@ -656,7 +651,7 @@ class UploadState(rx.State):
             file = files
 
         self.filename = file.filename
-        outfile = rx.get_upload_dir() / pathlib.Path("mp4s") / pathlib.Path(self.filename)
+        outfile = rx.get_upload_dir() / pathlib.Path(self.filename)
 
         # Save the file.
         chunk_size = 1_000_000
