@@ -640,12 +640,13 @@ class UploadState(rx.State):
     uploading: bool = False
     status: str = ""
     filename: str
-    file_not_uploaded_yet = True
+    not_complete_upload = True
     progress: int = 0
     total_bytes: int = 0
 
     @rx.event
     async def handle_upload(self, files: list[rx.UploadFile]):
+        self.not_complete_upload = True
         """Handle the upload of file(s).
         """
         file: rx.UploadFile
@@ -666,7 +667,7 @@ class UploadState(rx.State):
                 self.total_bytes += chunk_size
 
         self.status = f"{self.filename} uploaded!"
-        self.file_not_uploaded_yet = False
+        self.not_complete_upload = False
 
     @rx.event
     def handle_upload_progress(self, progress: dict):
@@ -679,6 +680,10 @@ class UploadState(rx.State):
     def cancel_upload(self):
         self.uploading = False
         return rx.cancel_upload("upload_vtrq")
+
+    @rx.event
+    def switch_not_complete_upload(self):
+        self.not_complete_upload = not self.not_complete_upload
 
 class AhoState(rx.State):
     mes: str = "do noth"
@@ -1034,16 +1039,21 @@ def drawer_content():
                 padding="0",
                 ),
                 # rx.progress(value=UploadState.progress, max=100),
+                rx.vstack(
                 rx.button(
                     "Prepare VTRQ",
                     type="button",
-                    disabled=UploadState.file_not_uploaded_yet,
-                    on_click=GameState.rename_vtrq(UploadState.filename)
+                    disabled=UploadState.not_complete_upload,
+                    on_click=[
+                        GameState.rename_vtrq(UploadState.filename),
+                        UploadState.switch_not_complete_upload(),
+                    ]
                 ),
                 rx.cond(
                     GameState.vtrq_set,
                     rx.text(GameState.orig_filename + "->" + GameState.vtrq_filename),
                     rx.text("")
+                ),
                 ),
                 # rx.form(
                 #     rx.hstack(
