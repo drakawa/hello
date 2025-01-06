@@ -150,6 +150,8 @@ class GameState(rx.State):
     vtrq_filename = f"vtrq_{game_id}.mp4"
     vtrq_file = vtrq_filename
     vtrq_filepath = rx.get_upload_dir() / pathlib.Path(vtrq_filename)
+    vtrq_set = False
+    orig_filename: str
 
     @rx.var
     def vtrq_filepath_url(self) -> str:
@@ -157,12 +159,14 @@ class GameState(rx.State):
 
     @rx.event
     def rename_vtrq(self, orig_filename):
+        self.orig_filename = orig_filename
         print("do rename_vtrq")
         print(orig_filename)
         orig_filepath = rx.get_upload_dir() / pathlib.Path(orig_filename)
         print(orig_filepath)
         print(self.vtrq_filepath)
         orig_filepath.rename(self.vtrq_filepath)
+        self.vtrq_set = True
 
     @rx.event
     def delete_oldmp4s(self):
@@ -570,13 +574,13 @@ z_panels = 5
 
 ################# CSS Style sheets ################
 def mydefaultborder(color):
-    return {"border": f"1vh solid {color}"}
+    return {"border": f"1vmin solid {color}"}
 
 def myblinkborder(color):
     return {
                 f"@keyframes blinkBorder{color[1:]}": {
-                "0%": {"border": f"1vh solid {color}"},
-                "100%": {"border": f"1vh solid {color[:-2]}00"},
+                "0%": {"border": f"1vmin solid {color}"},
+                "100%": {"border": f"1vmin solid {color[:-2]}00"},
                 },
                 "animation": f"blinkBorder{color[1:]} 0.5s ease infinite alternate"
             }
@@ -654,6 +658,7 @@ class UploadState(rx.State):
         outfile = rx.get_upload_dir() / pathlib.Path(self.filename)
 
         # Save the file.
+        self.total_bytes = 0
         chunk_size = 1_000_000
         with outfile.open("wb") as file_object:
             while chunk := await file.read(chunk_size):
@@ -825,6 +830,7 @@ class DrawerState(rx.State):
 
 def drawer_content():
     return rx.drawer.content(
+        rx.scroll_area(
         rx.flex(
             rx.hstack(
                 rx.drawer.close(
@@ -839,21 +845,47 @@ def drawer_content():
                     #     on_click=DrawerState.toggle_drawer,
                     # ),
                 ),
-                rx.text(
-                    "Load Panels⇒", size="2", width="10em",
+                rx.popover.root(
+                    rx.popover.trigger(
+                        rx.button("Load Panels", variant="soft"),
+                    ),
+                    rx.popover.content(
+                        rx.flex(
+                            rx.select(
+                                GameState.select_choices,
+                                value=GameState.selected_value,
+                                on_change=GameState.change_value,
+                            ),
+                            rx.button(
+                                "Load",
+                                on_click=GameState.load_state(),
+                                disabled=(GameState.selected_value=="")
+                            ),
+                        ),
+                        style={"width": 360},
+                        side="right",
+                    ),
+                    modal=True,
                 ),
-                rx.select(
-                    GameState.select_choices,
-                    value=GameState.selected_value,
-                    on_change=GameState.change_value,
-                ),
-                rx.button(
-                    GameState.selected_value,
-                    on_click=GameState.load_state(),
-                ),
-                rx.text(
-                    "Select the winner...", size="2", width="100px",
-                ),
+                # rx.text(
+                #     "Load Panels⇒", size="2", width="10em",
+                # ),
+                # rx.select(
+                #     GameState.select_choices,
+                #     value=GameState.selected_value,
+                #     on_change=GameState.change_value,
+                # ),
+                # rx.button(
+                #     "Load",
+                #     on_click=GameState.load_state(),
+                #     disabled=(GameState.selected_value=="")
+                # ),
+                rx.popover.root(
+                    rx.popover.trigger(
+                        rx.button("Select the winner", variant="soft"),
+                    ),
+                    rx.popover.content(
+                        rx.flex(
                 rx.card(
                     rx.form.root(
                         rx.radio_group(
@@ -886,8 +918,51 @@ def drawer_content():
                         reset_on_submit=True,
                         padding="0",
                     ),
-                    width="35em",
                 ),
+                        ),
+                        # style={"width": "30em"},
+                        side="right",
+                        padding="0",
+                    ),
+                    modal=True,
+                ),
+                # rx.text(
+                #     "Select the winner...", size="2", width="100px",
+                # ),
+                # rx.card(
+                #     rx.form.root(
+                #         rx.radio_group(
+                #             GameState.player_radio_labels,
+                #             name="radio_choice",
+                #             direction="row",
+                #             disabled=AudioPlayingState.panel_win_playing.bool(),
+                #             on_change=GameState.select_player_radio,
+                #             padding="0",
+                #         ),
+                #         rx.hstack(
+                #             rx.box(
+                #                 GameState.game_player_names[GameState.radio_selected_winner],
+                #                 color="black",
+                #                 background_color=GameState.colors[GameState.radio_selected_winner],
+                #                 # color_scheme= lambda l: GameState.label_colors[l],
+                #             ),
+                #             rx.button(
+                #                 "You Win", 
+                #                 type="submit", 
+                #                 disabled=AudioPlayingState.panel_win_playing.bool() | GameState.radio_unselected.bool(),
+                #             ),
+                #             padding="0",
+
+                #         ),
+                #         on_submit=[
+                #             GameState.set_winner_form,
+                #             AudioPlayingState.switch_panel_win,
+                #         ],
+                #         reset_on_submit=True,
+                #         padding="0",
+                #     ),
+                #     width="30em",
+                # ),
                 # rx.foreach(
                 #     GameState.players,
                 #     lambda i: rx.button(
@@ -942,6 +1017,7 @@ def drawer_content():
                             ),
                         ),
                         size="1",
+                        disabled=(rx.selected_files("upload_vtrq").length() == 0)
                     ),
                     rx.button(
                         "Cancel",
@@ -953,15 +1029,21 @@ def drawer_content():
                 rx.text(
                     f"Uploaded: {UploadState.total_bytes / 1_000_000} MB",
                     size="1",
+                    width="10em"
                 ),
                 padding="0",
                 ),
                 # rx.progress(value=UploadState.progress, max=100),
                 rx.button(
-                    "Prepare VTR",
+                    "Prepare VTRQ",
                     type="button",
                     disabled=UploadState.file_not_uploaded_yet,
                     on_click=GameState.rename_vtrq(UploadState.filename)
+                ),
+                rx.cond(
+                    GameState.vtrq_set,
+                    rx.text(GameState.orig_filename + "->" + GameState.vtrq_filename),
+                    rx.text("")
                 ),
                 # rx.form(
                 #     rx.hstack(
@@ -1019,7 +1101,8 @@ def drawer_content():
         width="100%",
         padding="0em",
         background_color=rx.color("gray", 7),
-    )
+    ),
+    ),
 
 def lateral_menu():
     return rx.drawer.root(
@@ -1041,6 +1124,7 @@ def lateral_menu():
 def index() -> rx.Component:
     return rx.vstack(
         lateral_menu(),
+    rx.scroll_area(
         rx.hstack(
             rx.button(
                 "deden",
@@ -1118,6 +1202,7 @@ def index() -> rx.Component:
                 },
                 on_click=VideoPlayingState.switch_playing(True),
             ),
+            rx.box(
             rx.form(
                 rx.hstack(
                     rx.input(
@@ -1130,8 +1215,11 @@ def index() -> rx.Component:
                 on_submit=VideoPlayingState.set_vtrq_ans,
                 reset_on_submit=True,
             ),
+            width="15em"
+            ),
 
         ),
+    ),
         rx.text(f""),
         # rx.text(f"Game ID: {GameState.game_id}"),
         # rx.cond(
@@ -1152,12 +1240,13 @@ def index() -> rx.Component:
                             myblinkcolor(GameState.colors[GameState.player].to_string(use_json=False)),
                         ),
                         border_style="solid",
-                        border_width="0.1vh",
+                        border_width="0.1vmin",
                         border_color="#000000FF",
-                        height=rx.Var.to_string(GameState.height)+ "vh",
+                        height=rx.Var.to_string(GameState.height)+ "vmin",
+                        width=rx.Var.to_string(GameState.width)+ "vmin",
                         background_color=GameState.panel_colors[i],
                         visibility=GameState.visible[i],
-                        font_size=rx.Var.to_string(GameState.font_height)+ "vh",
+                        font_size=rx.Var.to_string(GameState.font_height)+ "vmin",
                         text_align="center",
                         on_click=GameState.set_panel(i),
                         disabled=GameState.denied_panels[i].bool(),
@@ -1166,13 +1255,13 @@ def index() -> rx.Component:
                 ),
                 columns=rx.Var.to_string(GameState.n_col),
                 spacing="0",
-                width=rx.Var.to_string(GameState.panels_width) + "vh",
+                width=rx.Var.to_string(GameState.panels_width) + "vmin",
             ),
             rx.cond(
                 BackgroundState.bg == BG_HIDDEN,
                 rx.box(
-                    width=rx.Var.to_string(GameState.panels_width) + "vh",
-                    height=rx.Var.to_string(GameState.panels_height) + "vh",
+                    width=rx.Var.to_string(GameState.panels_width) + "vmin",
+                    height=rx.Var.to_string(GameState.panels_height) + "vmin",
                     background_color="transparent",
                     position="absolute",
                     z_index=3,
@@ -1180,8 +1269,8 @@ def index() -> rx.Component:
                 rx.video(
                     # url=rx.get_upload_url(GameState.vtrq_filename),
                     url=rx.get_upload_url(GameState.vtrq_file),
-                    width=rx.Var.to_string(GameState.panels_width) + "vh",
-                    height=rx.Var.to_string(GameState.panels_height) + "vh",
+                    width=rx.Var.to_string(GameState.panels_width) + "vmin",
+                    height=rx.Var.to_string(GameState.panels_height) + "vmin",
                     position="absolute",
                     muted=True,
                     controls=False,
@@ -1196,8 +1285,8 @@ def index() -> rx.Component:
                 #     BackgroundState.bg == BG_SHOW,
                 #     rx.video(
                 #         url=rx.get_upload_url(GameState.vtrq_mp4),
-                #         width=rx.Var.to_string(GameState.panels_width) + "vh",
-                #         height=rx.Var.to_string(GameState.panels_height) + "vh",
+                #         width=rx.Var.to_string(GameState.panels_width) + "vmin",
+                #         height=rx.Var.to_string(GameState.panels_height) + "vmin",
                 #         position="absolute",
                 #         controls=False,
                 #         playing=VideoPlayingState.playing.bool(),
@@ -1208,8 +1297,8 @@ def index() -> rx.Component:
                 #     ),
                 #     rx.image(
                 #         src=rx.get_upload_url(GameState.vtrq_lastpic),
-                #         width=rx.Var.to_string(GameState.panels_width) + "vh",
-                #         height=rx.Var.to_string(GameState.panels_height) + "vh",
+                #         width=rx.Var.to_string(GameState.panels_width) + "vmin",
+                #         height=rx.Var.to_string(GameState.panels_height) + "vmin",
                 #         position="absolute",
                 #         z_index=3,
                 #     ),
@@ -1223,8 +1312,8 @@ def index() -> rx.Component:
                     VideoPlayingState.vtrq_ans,
                     z_index=10000,
                     background_color="#FF7628FF",
-                    border_radius="10px",
-                    font_size="10vh",
+                    border_radius="1vmin",
+                    font_size="10vmin",
                     font_weight="bolder",
                     position="absolute",
                     top="55%",
@@ -1261,7 +1350,8 @@ def index() -> rx.Component:
                         ),
                         rx.button(
                             GameState.game_player_names[i],
-                            width=rx.Var.to_string(GameState.width)+ "vh",
+                            height="5vmin",
+                            width=rx.Var.to_string(GameState.width)+ "vmin",
                             text_align="center",
                             background_color=GameState.colors[i].to_string(use_json=False),
                             style=rx.cond(
@@ -1270,9 +1360,9 @@ def index() -> rx.Component:
                                 mydefaultbgcolor(GameState.colors[i].to_string(use_json=False)),
                             ),
                             color="black",
-                            font_size=rx.Var.to_string(GameState.player_font_size)+ "vh",
+                            font_size=rx.Var.to_string(GameState.player_font_size)+ "vmin",
                             font_weight="bolder",
-                            border_radius="4px",
+                            border_radius="1vmin",
                             on_double_click=GameState.edit_player_name(i),
                             disabled=GameState.deny_player_nameplates[i].bool(),
                         ),
@@ -1284,11 +1374,11 @@ def index() -> rx.Component:
                             myblinkborder(GameState.colors[i].to_string(use_json=False)),
                             mydefaultborder(GameState.colors[i].to_string(use_json=False)),
                         ),
-                        height=rx.Var.to_string(GameState.height)+ "vh",
-                        width=rx.Var.to_string(GameState.width)+ "vh",
+                        height=rx.Var.to_string(GameState.height)+ "vmin",
+                        width=rx.Var.to_string(GameState.width)+ "vmin",
                         background_color="black",
                         color="white",
-                        font_size=rx.Var.to_string(GameState.font_height)+ "vh",
+                        font_size=rx.Var.to_string(GameState.font_height)+ "vmin",
                         text_align="center",
                         z_index=1,
                         on_click=GameState.set_player(i),
@@ -1297,7 +1387,7 @@ def index() -> rx.Component:
                 ),
             ),
             justify="center",
-            spacing="9",
+            spacing="5",
             width="100%",
             z_index=5,
 
@@ -1309,8 +1399,8 @@ def index() -> rx.Component:
                     url="/" + a.to_string(use_json=False),
                     controls=False,
                     visibility="collapse",
-                    width="10px",
-                    height="10px",
+                    width="1vmin",
+                    height="1vmin",
                     playing=GameState.playing[i].bool(),
                 ),
             ),
@@ -1318,8 +1408,8 @@ def index() -> rx.Component:
                 url="/atchance_chime.mp3",
                 controls=False,
                 visibility="collapse",
-                width="10px",
-                height="10px",
+                width="1vmin",
+                height="1vmin",
                 playing=GameState.atchance_chime_playing.bool(),
                 on_ended=GameState.stop_chime_show_deden(),
             ),
@@ -1327,8 +1417,8 @@ def index() -> rx.Component:
                 url="/atchance_deden.mp3",
                 controls=False,
                 visibility="collapse",
-                width="10px",
-                height="10px",
+                width="1vmin",
+                height="1vmin",
                 playing=AudioPlayingState.atchance_deden_playing.bool(),
                 on_ended=[
                     GameState.stop_hide_deden(),
@@ -1340,8 +1430,8 @@ def index() -> rx.Component:
                 url="/panel_win.mp3",
                 controls=False,
                 visibility="collapse",
-                width="10px",
-                height="10px",
+                width="1vmin",
+                height="1vmin",
                 playing=AudioPlayingState.panel_win_playing.bool(),
                 on_ended=AudioPlayingState.switch_panel_win(),
             ),
@@ -1349,8 +1439,8 @@ def index() -> rx.Component:
                 url="/success.mp3",
                 controls=False,
                 visibility="collapse",
-                width="10px",
-                height="10px",
+                width="1vmin",
+                height="1vmin",
                 playing=AudioPlayingState.success_playing.bool(),
                 on_ended=AudioPlayingState.switch_success(),
             ),
@@ -1358,8 +1448,8 @@ def index() -> rx.Component:
                 url="/failure.mp3",
                 controls=False,
                 visibility="collapse",
-                width="10px",
-                height="10px",
+                width="1vmin",
+                height="1vmin",
                 playing=AudioPlayingState.failure_playing.bool(),
                 on_ended=AudioPlayingState.switch_failure(),
             ),
@@ -1367,8 +1457,8 @@ def index() -> rx.Component:
                 url="/vtrq.mp3",
                 controls=False,
                 visibility="collapse",
-                width="10px",
-                height="10px",
+                width="1vmin",
+                height="1vmin",
                 playing=AudioPlayingState.vtrq_playing.bool(),
                 on_ended=AudioPlayingState.switch_vtrq(),
             ),
