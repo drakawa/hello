@@ -149,7 +149,8 @@ class GameState(rx.State):
 
     game_id: int = game_state.game.get_game_id()
 
-    vtrq_filename = f"vtrq_{game_id}.mp4"
+    # vtrq_filename = f"vtrq_{game_id}.mp4"
+    vtrq_filename = f"vtrq.mp4"
     vtrq_file = vtrq_filename
     vtrq_filepath = rx.get_upload_dir() / pathlib.Path(vtrq_filename)
     vtrq_set = False
@@ -205,7 +206,7 @@ class GameState(rx.State):
             self.vtrq_mp4 = "vtrq_masterpiece.mp4"
             return rx.toast.success("valid password.")
         else:
-            self.vtrq_mp4 = self.VTRQ_MP4_DEFAULT
+            # self.vtrq_mp4 = self.VTRQ_MP4_DEFAULT
             return rx.toast.warning("INVALID password.")
 
     selected_value: str = ""
@@ -515,6 +516,9 @@ class VideoPlayingState(rx.State):
     vtrq_ans: str
     valid_vtrq_ans: bool = False
     replaying: bool = False
+
+    udir = rx.get_upload_dir()
+    vtrq_ans = "A. " + pathlib.Path(os.path.join(udir, "vtrq_ans.txt")).read_text()
     
     @rx.event
     def switch_playing(self, is_replay=False):
@@ -526,10 +530,9 @@ class VideoPlayingState(rx.State):
             self.replaying = not self.replaying
             self.valid_vtrq_ans = False
 
-
-    @rx.event
-    def set_vtrq_ans(self, input: dict):
-        self.vtrq_ans = input["vtrq_ans"]
+    # @rx.event
+    # def set_vtrq_ans(self, input: dict):
+    #     self.vtrq_ans = "A. " + input["vtrq_ans"]
 
 class AudioPlayingState(rx.State):
     atchance_deden_playing: bool = False
