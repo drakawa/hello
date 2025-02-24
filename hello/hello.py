@@ -155,7 +155,7 @@ class GameState(rx.State):
     vtrq_set = False
     orig_filename: str
 
-    @rx.var
+    @rx.var(cache=False)
     def vtrq_filepath_url(self) -> str:
         return str(self.vtrq_filepath)
 
@@ -318,10 +318,10 @@ class GameState(rx.State):
         self.set_at_chance = False
 
     
-    @rx.var
+    @rx.var(cache=False)
     def player_radio_labels(self) -> list[str]:
         return [(f"{self.game_player_names[i]} ({self.points[i]})") for i in self.players]
-    @rx.var
+    @rx.var(cache=False)
     def label_players(self) -> dict[str, int]:
        return {l: i for l, i in zip(self.player_radio_labels, self.players)}
     
@@ -394,7 +394,7 @@ class GameState(rx.State):
                 print("changed_panel:", i + 1)
         await asyncio.sleep(2.0)
         
-    @rx.event
+    @rx.event(background=True)
     async def set_panel(self, panel_idx):
         async with self:
             if self.player not in self.players:
