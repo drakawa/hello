@@ -210,7 +210,8 @@ class GameState(rx.State):
             return rx.toast.warning("INVALID password.")
 
     selected_value: str = ""
-    select_choices: list[str] = sorted(rx.get_upload_dir().glob('*.csv'))
+    select_choices: list[str] = sorted(rx.get_upload_dir().glob('*.csv'),
+                                       key=os.path.getmtime, reverse=True)
 
     panels = [EMPTY for _ in range(n_panels)]
     points = {p: 0 for p in players}
@@ -246,22 +247,22 @@ class GameState(rx.State):
     # success_playing: bool = False
     # failure_playing: bool = False
 
-    visible_deden_button: str = "collapse"
+    disable_deden_button: bool = True
     # at_chance_deden_playing: bool = False
     # 4 FIXED?
     # player_names: dict[int, str] = game_player_names
 
     #### when playing chime ended, stop playing and show deden button
     @rx.event
-    def stop_chime_show_deden(self):
+    def stop_chime_disable_deden(self):
         self.atchance_chime_playing = False
-        self.visible_deden_button = "visible"
+        self.disable_deden_button = False
 
     ### when playing deden ended, stop playing and hide deden button
     @rx.event
     def stop_hide_deden(self):
         # self.at_chance_deden_playing = False
-        self.visible_deden_button = "collapse"
+        self.disable_deden_button = True
 
     ### when playing panel_win ended, stop playing
     # @rx.event
@@ -327,6 +328,23 @@ class GameState(rx.State):
        return {l: i for l, i in zip(self.player_radio_labels, self.players)}
     
 
+    winner_unset: bool = True
+    winner_panels_undeleted: bool = True
+    prestarting_vtrq: bool = True
+    vtrq_unjudged: bool = True
+    all_panels_undeleted: bool = True
+    prestarting_vtrq_ans: bool = True
+
+    @rx.event
+    def revert_winner_states(self):
+        self.winner_unset = True
+        self.winner_panels_undeleted = True
+        self.prestarting_vtrq = True
+        self.vtrq_unjudged = True
+        self.all_panels_undeleted = True
+        self.prestarting_vtrq_ans = True
+        yield
+
     radio_unselected: bool = True
     radio_selected_winner: int = EMPTY
 
@@ -342,6 +360,7 @@ class GameState(rx.State):
         print(form_data)
         winner = self.label_players[form_data["radio_choice"]]
         self.winner = winner
+        self.winner_unset = False
         print("from set_winner_form: winner:", 
               winner, self.game_player_names[winner])
         # self.panel_win_playing = True
@@ -377,6 +396,8 @@ class GameState(rx.State):
     async def delete_panels(self):
         if self.winner not in self.players:
             return
+
+        self.winner_panels_undeleted = False
         panels_to_delete = self.game_state.game.get_player_panels(self.winner)
         for i in panels_to_delete:
             self.visible[i] = "collapse"
@@ -384,9 +405,18 @@ class GameState(rx.State):
             await asyncio.sleep(0.5)
             print("changed_panel:", i + 1)
         await asyncio.sleep(2.0)
+
+    @rx.event
+    def start_vtrq(self):
+        self.prestarting_vtrq = False
         
     @rx.event
+    def judge_vtrq(self):
+        self.vtrq_unjudged = False
+
+    @rx.event
     async def delete_all_panels(self):
+        self.all_panels_undeleted = False
         for i in range(self.n_panels):
             if self.visible[i] == "visible":
                 self.visible[i] = "collapse"
@@ -394,7 +424,11 @@ class GameState(rx.State):
                 await asyncio.sleep(0.5)
                 print("changed_panel:", i + 1)
         await asyncio.sleep(2.0)
-        
+
+    @rx.event
+    def start_vtrq_ans(self):
+        self.prestarting_vtrq_ans = False
+
     @rx.event(background=True)
     async def set_panel(self, panel_idx):
         async with self:
@@ -1142,37 +1176,71 @@ def lateral_menu():
 def index() -> rx.Component:
     return rx.vstack(
         logindialog(),
-        lateral_menu(),
+        # lateral_menu(),
         rx.scroll_area(
             rx.hstack(
                 rx.button(
-                    "deden",
-                    visibility=GameState.visible_deden_button,
+                    rx.icon("music"),
+                    "アタックチャンス!",
+                    visibility="visible",
                     on_click=AudioPlayingState.switch_deden(),
-                    disabled=AudioPlayingState.atchance_deden_playing,
+                    disabled=(AudioPlayingState.atchance_deden_playing | 
+                              GameState.disable_deden_button),
                 ),
-                rx.button(
-                    "Click Me to set video",
-                    _hover={
-                        "color": "red",
-                        "background-position": "right center",
-                        "background-size": "200%" + " auto",
-                        "-webkit-animation2": "pulse 2s infinite",
-                    },
-                    on_click=BackgroundState.show_video(),
+
+
+                rx.popover.root(
+                    rx.popover.trigger(
+                        rx.button("勝者決定", variant="soft",
+                        disabled=~GameState.winner_unset.bool()),
+                    ),
+                    rx.popover.content(
+                        rx.flex(
+                rx.card(
+                    rx.form.root(
+                        rx.radio_group(
+                            GameState.player_radio_labels,
+                            name="radio_choice",
+                            direction="row",
+                            disabled=AudioPlayingState.panel_win_playing.bool(),
+                            on_change=GameState.select_player_radio,
+                            padding="0",
+                        ),
+                        rx.hstack(
+                            rx.box(
+                                GameState.game_player_names[GameState.radio_selected_winner],
+                                color="black",
+                                background_color=GameState.colors[GameState.radio_selected_winner],
+                                # color_scheme= lambda l: GameState.label_colors[l],
+                            ),
+                            rx.button(
+                                "You Win", 
+                                type="submit", 
+                                disabled=AudioPlayingState.panel_win_playing.bool() | GameState.radio_unselected.bool(),
+                            ),
+                            padding="0",
+
+                        ),
+                        on_submit=[
+                            GameState.set_winner_form,
+                            AudioPlayingState.switch_panel_win,
+                        ],
+                        reset_on_submit=True,
+                        padding="0",
+                    ),
                 ),
-                rx.button(
-                    "Click Me to delete_panels",
-                    _hover={
-                        "color": "red",
-                        "background-position": "right center",
-                        "background-size": "200%" + " auto",
-                        "-webkit-animation2": "pulse 2s infinite",
-                    },
-                    on_click=GameState.delete_panels(),
+                        ),
+                        # style={"width": "30em"},
+                        side="right",
+                        padding="0",
+                    ),
+                    modal=True,
                 ),
+
                 rx.button(
-                    "Click Me to play video",
+                    "勝者パネル消す",
+                    disabled=(GameState.winner_unset | 
+                    ~GameState.winner_panels_undeleted.bool()),
                     _hover={
                         "color": "red",
                         "background-position": "right center",
@@ -1180,24 +1248,70 @@ def index() -> rx.Component:
                         "-webkit-animation2": "pulse 2s infinite",
                     },
                     on_click=[
+                        BackgroundState.show_video(),
+                        GameState.delete_panels(),
+                    ],
+                ),
+                # rx.button(
+                #     "Click Me to delete_panels",
+                #     _hover={
+                #         "color": "red",
+                #         "background-position": "right center",
+                #         "background-size": "200%" + " auto",
+                #         "-webkit-animation2": "pulse 2s infinite",
+                #     },
+                #     on_click=GameState.delete_panels(),
+                # ),
+                rx.button(
+                    "ラストクイズスタート",
+                    disabled=(GameState.winner_panels_undeleted | 
+                    ~GameState.prestarting_vtrq.bool()),
+                    _hover={
+                        "color": "red",
+                        "background-position": "right center",
+                        "background-size": "200%" + " auto",
+                        "-webkit-animation2": "pulse 2s infinite",
+                    },
+                    on_click=[
+                        GameState.start_vtrq(),
                         AudioPlayingState.switch_vtrq(),
                         VideoPlayingState.switch_playing(),
                     ],
                 ),
-                rx.icon_button(
-                    rx.icon("check"), 
-                    color_scheme="green",
-                    on_click=AudioPlayingState.switch_success(),
-                    disabled=AudioPlayingState.success_playing.bool() | AudioPlayingState.failure_playing.bool(),
-                ),
-                rx.icon_button(
-                    rx.icon("x"), 
-                    color_scheme="red",
-                    on_click=AudioPlayingState.switch_failure(),
-                    disabled=AudioPlayingState.success_playing.bool() | AudioPlayingState.failure_playing.bool(),
+                rx.box(
+                    rx.hstack(
+                        rx.text(f"正誤判定:", size="1", width="60px"),
+                        rx.icon_button(
+                            rx.icon("check"), 
+                            color_scheme="green",
+                            on_click=[
+                                GameState.judge_vtrq(),
+                                AudioPlayingState.switch_success(),
+                            ],
+                            disabled=(
+                                AudioPlayingState.success_playing.bool() | 
+                                AudioPlayingState.failure_playing.bool() |
+                                GameState.prestarting_vtrq.bool() |
+                                ~GameState.vtrq_unjudged.bool()),
+                        ),
+                        rx.icon_button(
+                            rx.icon("x"), 
+                            color_scheme="red",
+                            on_click=[
+                                GameState.judge_vtrq(),
+                                AudioPlayingState.switch_failure(),
+                            ],
+                            
+                            disabled=(
+                                AudioPlayingState.success_playing.bool() | 
+                                AudioPlayingState.failure_playing.bool() |
+                                GameState.prestarting_vtrq.bool() |
+                                ~GameState.vtrq_unjudged.bool()),
+                        ),
+                    ),
                 ),
                 rx.button(
-                    "Click Me to delete all panels",
+                    "全パネル消す",
                     _hover={
                         "color": "red",
                         "background-position": "right center",
@@ -1208,34 +1322,69 @@ def index() -> rx.Component:
                         BackgroundState.hidden(),
                         BackgroundState.show_video(),
                         GameState.delete_all_panels(),
-                    ]
+                    ],
+                    disabled=(GameState.vtrq_unjudged | 
+                    ~GameState.all_panels_undeleted.bool()),
 
                 ),
                 rx.button(
-                    "Click Me to replay video",
+                    "ラスト正解再生",
                     _hover={
                         "color": "red",
                         "background-position": "right center",
                         "background-size": "200%" + " auto",
                         "-webkit-animation2": "pulse 2s infinite",
                     },
-                    on_click=VideoPlayingState.switch_playing(True),
+                    on_click=[
+                        VideoPlayingState.switch_playing(True),
+                        GameState.start_vtrq_ans(),
+                    ],
+                    disabled=(GameState.all_panels_undeleted | 
+                    ~GameState.prestarting_vtrq_ans.bool()),
                 ),
-                rx.box(
-                rx.form(
-                    rx.hstack(
-                        rx.input(
-                            placeholder="vtrq_ans",
-                            name="vtrq_ans",
-                            type="vtrq_ans",
-                        ),
-                        rx.button("Submit", type="submit"),
+                # rx.box(
+                # rx.form(
+                #     rx.hstack(
+                #         rx.input(
+                #             placeholder="vtrq_ans",
+                #             name="vtrq_ans",
+                #             type="vtrq_ans",
+                #         ),
+                #         rx.button("Submit", type="submit"),
+                #     ),
+                #     on_submit=VideoPlayingState.set_vtrq_ans,
+                #     reset_on_submit=True,
+                # ),
+                # width="15em"
+                # ),
+
+                rx.popover.root(
+                    rx.popover.trigger(
+                        rx.button("パネルロード", variant="soft"),
                     ),
-                    on_submit=VideoPlayingState.set_vtrq_ans,
-                    reset_on_submit=True,
+                    rx.popover.content(
+                        rx.flex(
+                            rx.select(
+                                GameState.select_choices,
+                                value=GameState.selected_value,
+                                on_change=GameState.change_value,
+                            ),
+                            rx.button(
+                                "Load",
+                                on_click=[
+                                    GameState.load_state(),
+                                    GameState.revert_winner_states(),
+                                ],
+                                disabled=(GameState.selected_value=="")
+                            ),
+                        ),
+                        style={"width": 360},
+                        side="right",
+                    ),
+                    modal=True,
                 ),
-                width="15em"
-                ),
+
+                rx.text(f"Game ID: {GameState.game_id}", size="1", width="400px"),
 
             ),
         ),
@@ -1332,17 +1481,11 @@ def index() -> rx.Component:
                         z_index=10000,
                         background_color="#FF7628FF",
                         border_radius="1vmin",
-                        font_size="10vmin",
+                        font_size=rx.Var.to_string(GameState.font_height*1.5)+ "vmin",
                         font_weight="bolder",
                         position="absolute",
-                        top="55%",
+                        top=rx.Var.to_string(GameState.height*4)+ "vmin",
 
-                    ),
-                    rx.text("",
-                        z_index=10000,
-                        size="9",
-                        position="absolute",
-                        visibility="collapse",
                     ),
                 ),
                 width="100%",
@@ -1430,7 +1573,7 @@ def index() -> rx.Component:
                     width="1vmin",
                     height="1vmin",
                     playing=GameState.atchance_chime_playing.bool(),
-                    on_ended=GameState.stop_chime_show_deden(),
+                    on_ended=GameState.stop_chime_disable_deden(),
                 ),
                 rx.audio(
                     url="/atchance_deden.mp3",
