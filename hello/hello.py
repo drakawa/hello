@@ -1139,362 +1139,362 @@ def lateral_menu():
 def index() -> rx.Component:
     return rx.vstack(
         lateral_menu(),
-    rx.scroll_area(
-        rx.hstack(
-            rx.button(
-                "deden",
-                visibility=GameState.visible_deden_button,
-                on_click=AudioPlayingState.switch_deden(),
-                disabled=AudioPlayingState.atchance_deden_playing,
-            ),
-            rx.button(
-                "Click Me to set video",
-                _hover={
-                    "color": "red",
-                    "background-position": "right center",
-                    "background-size": "200%" + " auto",
-                    "-webkit-animation2": "pulse 2s infinite",
-                },
-                on_click=BackgroundState.show_video(),
-            ),
-            rx.button(
-                "Click Me to delete_panels",
-                _hover={
-                    "color": "red",
-                    "background-position": "right center",
-                    "background-size": "200%" + " auto",
-                    "-webkit-animation2": "pulse 2s infinite",
-                },
-                on_click=GameState.delete_panels(),
-            ),
-            rx.button(
-                "Click Me to play video",
-                _hover={
-                    "color": "red",
-                    "background-position": "right center",
-                    "background-size": "200%" + " auto",
-                    "-webkit-animation2": "pulse 2s infinite",
-                },
-                on_click=[
-                    AudioPlayingState.switch_vtrq(),
-                    VideoPlayingState.switch_playing(),
-                ],
-            ),
-            rx.icon_button(
-                rx.icon("check"), 
-                color_scheme="green",
-                on_click=AudioPlayingState.switch_success(),
-                disabled=AudioPlayingState.success_playing.bool() | AudioPlayingState.failure_playing.bool(),
-            ),
-            rx.icon_button(
-                rx.icon("x"), 
-                color_scheme="red",
-                on_click=AudioPlayingState.switch_failure(),
-                disabled=AudioPlayingState.success_playing.bool() | AudioPlayingState.failure_playing.bool(),
-            ),
-            rx.button(
-                "Click Me to delete all panels",
-                _hover={
-                    "color": "red",
-                    "background-position": "right center",
-                    "background-size": "200%" + " auto",
-                    "-webkit-animation2": "pulse 2s infinite",
-                },
-                on_click=[
-                    BackgroundState.hidden(),
-                    BackgroundState.show_video(),
-                    GameState.delete_all_panels(),
-                ]
-
-            ),
-            rx.button(
-                "Click Me to replay video",
-                _hover={
-                    "color": "red",
-                    "background-position": "right center",
-                    "background-size": "200%" + " auto",
-                    "-webkit-animation2": "pulse 2s infinite",
-                },
-                on_click=VideoPlayingState.switch_playing(True),
-            ),
-            rx.box(
-            rx.form(
-                rx.hstack(
-                    rx.input(
-                        placeholder="vtrq_ans",
-                        name="vtrq_ans",
-                        type="vtrq_ans",
-                    ),
-                    rx.button("Submit", type="submit"),
+        rx.scroll_area(
+            rx.hstack(
+                rx.button(
+                    "deden",
+                    visibility=GameState.visible_deden_button,
+                    on_click=AudioPlayingState.switch_deden(),
+                    disabled=AudioPlayingState.atchance_deden_playing,
                 ),
-                on_submit=VideoPlayingState.set_vtrq_ans,
-                reset_on_submit=True,
-            ),
-            width="15em"
-            ),
+                rx.button(
+                    "Click Me to set video",
+                    _hover={
+                        "color": "red",
+                        "background-position": "right center",
+                        "background-size": "200%" + " auto",
+                        "-webkit-animation2": "pulse 2s infinite",
+                    },
+                    on_click=BackgroundState.show_video(),
+                ),
+                rx.button(
+                    "Click Me to delete_panels",
+                    _hover={
+                        "color": "red",
+                        "background-position": "right center",
+                        "background-size": "200%" + " auto",
+                        "-webkit-animation2": "pulse 2s infinite",
+                    },
+                    on_click=GameState.delete_panels(),
+                ),
+                rx.button(
+                    "Click Me to play video",
+                    _hover={
+                        "color": "red",
+                        "background-position": "right center",
+                        "background-size": "200%" + " auto",
+                        "-webkit-animation2": "pulse 2s infinite",
+                    },
+                    on_click=[
+                        AudioPlayingState.switch_vtrq(),
+                        VideoPlayingState.switch_playing(),
+                    ],
+                ),
+                rx.icon_button(
+                    rx.icon("check"), 
+                    color_scheme="green",
+                    on_click=AudioPlayingState.switch_success(),
+                    disabled=AudioPlayingState.success_playing.bool() | AudioPlayingState.failure_playing.bool(),
+                ),
+                rx.icon_button(
+                    rx.icon("x"), 
+                    color_scheme="red",
+                    on_click=AudioPlayingState.switch_failure(),
+                    disabled=AudioPlayingState.success_playing.bool() | AudioPlayingState.failure_playing.bool(),
+                ),
+                rx.button(
+                    "Click Me to delete all panels",
+                    _hover={
+                        "color": "red",
+                        "background-position": "right center",
+                        "background-size": "200%" + " auto",
+                        "-webkit-animation2": "pulse 2s infinite",
+                    },
+                    on_click=[
+                        BackgroundState.hidden(),
+                        BackgroundState.show_video(),
+                        GameState.delete_all_panels(),
+                    ]
 
-        ),
-    ),
-        rx.text(f""),
-        # rx.text(f"Game ID: {GameState.game_id}"),
-        # rx.cond(
-        #     LoginState.open_dialog,
-        #     logindialog(),
-        #     ai_yaml_editor(),
-        # ),
-        rx.center(
-            rx.grid(
-                rx.foreach(
-                    rx.Var.range(GameState.n_panels),
-                    lambda i: rx.button(
-                        f"{i + 1}", 
-                        # color="black",
-                        style=rx.cond(
-                            GameState.denied_panels[i],
-                            mydefaultcolor("#000000FF"),
-                            myblinkcolor(GameState.colors[GameState.player].to_string(use_json=False)),
+                ),
+                rx.button(
+                    "Click Me to replay video",
+                    _hover={
+                        "color": "red",
+                        "background-position": "right center",
+                        "background-size": "200%" + " auto",
+                        "-webkit-animation2": "pulse 2s infinite",
+                    },
+                    on_click=VideoPlayingState.switch_playing(True),
+                ),
+                rx.box(
+                rx.form(
+                    rx.hstack(
+                        rx.input(
+                            placeholder="vtrq_ans",
+                            name="vtrq_ans",
+                            type="vtrq_ans",
                         ),
-                        border_style="solid",
-                        border_width="0.1vmin",
-                        border_color="#000000FF",
-                        height=rx.Var.to_string(GameState.height)+ "vmin",
-                        width=rx.Var.to_string(GameState.width)+ "vmin",
-                        background_color=GameState.panel_colors[i],
-                        visibility=GameState.visible[i],
-                        font_size=rx.Var.to_string(GameState.font_height)+ "vmin",
-                        text_align="center",
-                        on_click=GameState.set_panel(i),
-                        disabled=GameState.denied_panels[i].bool(),
-                        z_index=z_panels,
+                        rx.button("Submit", type="submit"),
+                    ),
+                    on_submit=VideoPlayingState.set_vtrq_ans,
+                    reset_on_submit=True,
+                ),
+                width="15em"
+                ),
+
+            ),
+        ),
+            rx.text(f""),
+            # rx.text(f"Game ID: {GameState.game_id}"),
+            # rx.cond(
+            #     LoginState.open_dialog,
+            #     logindialog(),
+            #     ai_yaml_editor(),
+            # ),
+            rx.center(
+                rx.grid(
+                    rx.foreach(
+                        rx.Var.range(GameState.n_panels),
+                        lambda i: rx.button(
+                            f"{i + 1}", 
+                            # color="black",
+                            style=rx.cond(
+                                GameState.denied_panels[i],
+                                mydefaultcolor("#000000FF"),
+                                myblinkcolor(GameState.colors[GameState.player].to_string(use_json=False)),
+                            ),
+                            border_style="solid",
+                            border_width="0.1vmin",
+                            border_color="#000000FF",
+                            height=rx.Var.to_string(GameState.height)+ "vmin",
+                            width=rx.Var.to_string(GameState.width)+ "vmin",
+                            background_color=GameState.panel_colors[i],
+                            visibility=GameState.visible[i],
+                            font_size=rx.Var.to_string(GameState.font_height)+ "vmin",
+                            text_align="center",
+                            on_click=GameState.set_panel(i),
+                            disabled=GameState.denied_panels[i].bool(),
+                            z_index=z_panels,
+                        ),
+                    ),
+                    columns=rx.Var.to_string(GameState.n_col),
+                    spacing="0",
+                    width=rx.Var.to_string(GameState.panels_width) + "vmin",
+                ),
+                rx.cond(
+                    BackgroundState.bg == BG_HIDDEN,
+                    rx.box(
+                        width=rx.Var.to_string(GameState.panels_width) + "vmin",
+                        height=rx.Var.to_string(GameState.panels_height) + "vmin",
+                        background_color="transparent",
+                        position="absolute",
+                        z_index=3,
+                    ),
+                    rx.video(
+                        # url=rx.get_upload_url(GameState.vtrq_filename),
+                        url=rx.get_upload_url(GameState.vtrq_file),
+                        width=rx.Var.to_string(GameState.panels_width) + "vmin",
+                        height=rx.Var.to_string(GameState.panels_height) + "vmin",
+                        position="absolute",
+                        muted=True,
+                        controls=False,
+                        playing=VideoPlayingState.playing.bool(),
+                        on_ended=VideoPlayingState.switch_playing(),
+                        # on_ended=[
+                        #     BackgroundState.show_lastpic()
+                        # ],
+                        z_index=2,
+                    ),
+                    # rx.cond(
+                    #     BackgroundState.bg == BG_SHOW,
+                    #     rx.video(
+                    #         url=rx.get_upload_url(GameState.vtrq_mp4),
+                    #         width=rx.Var.to_string(GameState.panels_width) + "vmin",
+                    #         height=rx.Var.to_string(GameState.panels_height) + "vmin",
+                    #         position="absolute",
+                    #         controls=False,
+                    #         playing=VideoPlayingState.playing.bool(),
+                    #         on_ended=[
+                    #             BackgroundState.show_lastpic()
+                    #         ],
+                    #         z_index=2,
+                    #     ),
+                    #     rx.image(
+                    #         src=rx.get_upload_url(GameState.vtrq_lastpic),
+                    #         width=rx.Var.to_string(GameState.panels_width) + "vmin",
+                    #         height=rx.Var.to_string(GameState.panels_height) + "vmin",
+                    #         position="absolute",
+                    #         z_index=3,
+                    #     ),
+
+
+                    # ),
+                ),
+                rx.cond(
+                    VideoPlayingState.valid_vtrq_ans.bool(),
+                    rx.box(
+                        VideoPlayingState.vtrq_ans,
+                        z_index=10000,
+                        background_color="#FF7628FF",
+                        border_radius="1vmin",
+                        font_size="10vmin",
+                        font_weight="bolder",
+                        position="absolute",
+                        top="55%",
+
+                    ),
+                    rx.text("",
+                        z_index=10000,
+                        size="9",
+                        position="absolute",
+                        visibility="collapse",
                     ),
                 ),
-                columns=rx.Var.to_string(GameState.n_col),
-                spacing="0",
-                width=rx.Var.to_string(GameState.panels_width) + "vmin",
+                width="100%",
             ),
-            rx.cond(
-                BackgroundState.bg == BG_HIDDEN,
-                rx.box(
-                    width=rx.Var.to_string(GameState.panels_width) + "vmin",
-                    height=rx.Var.to_string(GameState.panels_height) + "vmin",
-                    background_color="transparent",
-                    position="absolute",
-                    z_index=3,
-                ),
-                rx.video(
-                    # url=rx.get_upload_url(GameState.vtrq_filename),
-                    url=rx.get_upload_url(GameState.vtrq_file),
-                    width=rx.Var.to_string(GameState.panels_width) + "vmin",
-                    height=rx.Var.to_string(GameState.panels_height) + "vmin",
-                    position="absolute",
-                    muted=True,
-                    controls=False,
-                    playing=VideoPlayingState.playing.bool(),
-                    on_ended=VideoPlayingState.switch_playing(),
-                    # on_ended=[
-                    #     BackgroundState.show_lastpic()
-                    # ],
-                    z_index=2,
-                ),
-                # rx.cond(
-                #     BackgroundState.bg == BG_SHOW,
-                #     rx.video(
-                #         url=rx.get_upload_url(GameState.vtrq_mp4),
-                #         width=rx.Var.to_string(GameState.panels_width) + "vmin",
-                #         height=rx.Var.to_string(GameState.panels_height) + "vmin",
-                #         position="absolute",
-                #         controls=False,
-                #         playing=VideoPlayingState.playing.bool(),
-                #         on_ended=[
-                #             BackgroundState.show_lastpic()
-                #         ],
-                #         z_index=2,
-                #     ),
-                #     rx.image(
-                #         src=rx.get_upload_url(GameState.vtrq_lastpic),
-                #         width=rx.Var.to_string(GameState.panels_width) + "vmin",
-                #         height=rx.Var.to_string(GameState.panels_height) + "vmin",
-                #         position="absolute",
-                #         z_index=3,
-                #     ),
-
-
-                # ),
-            ),
-            rx.cond(
-                VideoPlayingState.valid_vtrq_ans.bool(),
-                rx.box(
-                    VideoPlayingState.vtrq_ans,
-                    z_index=10000,
-                    background_color="#FF7628FF",
-                    border_radius="1vmin",
-                    font_size="10vmin",
-                    font_weight="bolder",
-                    position="absolute",
-                    top="55%",
-
-                ),
-                rx.text("",
-                    z_index=10000,
-                    size="9",
-                    position="absolute",
-                    visibility="collapse",
-                ),
-            ),
-            width="100%",
-        ),
-        rx.text(""),
-        rx.hstack(
-            rx.foreach(
-                GameState.players,
-                lambda i: rx.vstack(
-                    rx.cond(
-                        GameState.on_edit[i].bool(),
-                        rx.form.root(
-                            rx.hstack(
-                                rx.input(
-                                    name="input",
-                                    placeholder="Enter text...",
-                                    type="text",
-                                    required=True,
+            rx.text(""),
+            rx.hstack(
+                rx.foreach(
+                    GameState.players,
+                    lambda i: rx.vstack(
+                        rx.cond(
+                            GameState.on_edit[i].bool(),
+                            rx.form.root(
+                                rx.hstack(
+                                    rx.input(
+                                        name="input",
+                                        placeholder="Enter text...",
+                                        type="text",
+                                        required=True,
+                                    ),
+                                    rx.button("Submit", type="submit",),
                                 ),
-                                rx.button("Submit", type="submit",),
+                                on_submit=GameState.set_player_name,
+                                reset_on_submit=False,
                             ),
-                            on_submit=GameState.set_player_name,
-                            reset_on_submit=False,
+                            rx.button(
+                                GameState.game_player_names[i],
+                                height="5vmin",
+                                width=rx.Var.to_string(GameState.width)+ "vmin",
+                                text_align="center",
+                                background_color=GameState.colors[i].to_string(use_json=False),
+                                style=rx.cond(
+                                    GameState.winner == i,
+                                    mygamingbgcolor(GameState.colors[i].to_string(use_json=False)),
+                                    mydefaultbgcolor(GameState.colors[i].to_string(use_json=False)),
+                                ),
+                                color="black",
+                                font_size=rx.Var.to_string(GameState.player_font_size)+ "vmin",
+                                font_weight="bolder",
+                                border_radius="1vmin",
+                                on_double_click=GameState.edit_player_name(i),
+                                disabled=GameState.deny_player_nameplates[i].bool(),
+                            ),
                         ),
                         rx.button(
-                            GameState.game_player_names[i],
-                            height="5vmin",
-                            width=rx.Var.to_string(GameState.width)+ "vmin",
-                            text_align="center",
-                            background_color=GameState.colors[i].to_string(use_json=False),
+                            GameState.points[i].to_string(use_json=False),
                             style=rx.cond(
-                                GameState.winner == i,
-                                mygamingbgcolor(GameState.colors[i].to_string(use_json=False)),
-                                mydefaultbgcolor(GameState.colors[i].to_string(use_json=False)),
+                                GameState.player == i,
+                                myblinkborder(GameState.colors[i].to_string(use_json=False)),
+                                mydefaultborder(GameState.colors[i].to_string(use_json=False)),
                             ),
-                            color="black",
-                            font_size=rx.Var.to_string(GameState.player_font_size)+ "vmin",
-                            font_weight="bolder",
-                            border_radius="1vmin",
-                            on_double_click=GameState.edit_player_name(i),
-                            disabled=GameState.deny_player_nameplates[i].bool(),
+                            height=rx.Var.to_string(GameState.height)+ "vmin",
+                            width=rx.Var.to_string(GameState.width)+ "vmin",
+                            background_color="black",
+                            color="white",
+                            font_size=rx.Var.to_string(GameState.font_height)+ "vmin",
+                            text_align="center",
+                            z_index=1,
+                            on_click=GameState.set_player(i),
+                            disabled=GameState.deny_player_button.bool(),
                         ),
-                    ),
-                    rx.button(
-                        GameState.points[i].to_string(use_json=False),
-                        style=rx.cond(
-                            GameState.player == i,
-                            myblinkborder(GameState.colors[i].to_string(use_json=False)),
-                            mydefaultborder(GameState.colors[i].to_string(use_json=False)),
-                        ),
-                        height=rx.Var.to_string(GameState.height)+ "vmin",
-                        width=rx.Var.to_string(GameState.width)+ "vmin",
-                        background_color="black",
-                        color="white",
-                        font_size=rx.Var.to_string(GameState.font_height)+ "vmin",
-                        text_align="center",
-                        z_index=1,
-                        on_click=GameState.set_player(i),
-                        disabled=GameState.deny_player_button.bool(),
                     ),
                 ),
-            ),
-            justify="center",
-            spacing="5",
-            width="100%",
-            z_index=5,
+                justify="center",
+                spacing="5",
+                width="100%",
+                z_index=5,
 
-        ),
-        rx.vstack(
-            # rx.foreach(
-            #     GameState.audios,
-            #     lambda a, i: rx.audio(
-            #         url="/" + a.to_string(use_json=False),
-            #         controls=False,
-            #         visibility="collapse",
-            #         width="1vmin",
-            #         height="1vmin",
-            #         playing=GameState.playing[i].bool(),
-            #     ),
-            # ),
-            rx.audio(
-                url="/atchance_chime.mp3",
-                controls=False,
-                visibility="collapse",
-                width="1vmin",
-                height="1vmin",
-                playing=GameState.atchance_chime_playing.bool(),
-                on_ended=GameState.stop_chime_show_deden(),
             ),
-            rx.audio(
-                url="/atchance_deden.mp3",
-                controls=False,
-                visibility="collapse",
-                width="1vmin",
-                height="1vmin",
-                playing=AudioPlayingState.atchance_deden_playing.bool(),
-                on_ended=[
-                    GameState.stop_hide_deden(),
-                    AudioPlayingState.switch_deden(),
-                ]
-                          
+            rx.vstack(
+                # rx.foreach(
+                #     GameState.audios,
+                #     lambda a, i: rx.audio(
+                #         url="/" + a.to_string(use_json=False),
+                #         controls=False,
+                #         visibility="collapse",
+                #         width="1vmin",
+                #         height="1vmin",
+                #         playing=GameState.playing[i].bool(),
+                #     ),
+                # ),
+                rx.audio(
+                    url="/atchance_chime.mp3",
+                    controls=False,
+                    visibility="collapse",
+                    width="1vmin",
+                    height="1vmin",
+                    playing=GameState.atchance_chime_playing.bool(),
+                    on_ended=GameState.stop_chime_show_deden(),
+                ),
+                rx.audio(
+                    url="/atchance_deden.mp3",
+                    controls=False,
+                    visibility="collapse",
+                    width="1vmin",
+                    height="1vmin",
+                    playing=AudioPlayingState.atchance_deden_playing.bool(),
+                    on_ended=[
+                        GameState.stop_hide_deden(),
+                        AudioPlayingState.switch_deden(),
+                    ]
+                            
+                ),
+                rx.audio(
+                    url="/panel_win.mp3",
+                    controls=False,
+                    visibility="collapse",
+                    width="1vmin",
+                    height="1vmin",
+                    playing=AudioPlayingState.panel_win_playing.bool(),
+                    on_ended=AudioPlayingState.switch_panel_win(),
+                ),
+                rx.audio(
+                    url="/success.mp3",
+                    controls=False,
+                    visibility="collapse",
+                    width="1vmin",
+                    height="1vmin",
+                    playing=AudioPlayingState.success_playing.bool(),
+                    on_ended=AudioPlayingState.switch_success(),
+                ),
+                rx.audio(
+                    url="/failure.mp3",
+                    controls=False,
+                    visibility="collapse",
+                    width="1vmin",
+                    height="1vmin",
+                    playing=AudioPlayingState.failure_playing.bool(),
+                    on_ended=AudioPlayingState.switch_failure(),
+                ),
+                rx.audio(
+                    url="/vtrq.mp3",
+                    controls=False,
+                    visibility="collapse",
+                    width="1vmin",
+                    height="1vmin",
+                    playing=AudioPlayingState.vtrq_playing.bool(),
+                    on_ended=AudioPlayingState.switch_vtrq(),
+                ),
             ),
-            rx.audio(
-                url="/panel_win.mp3",
-                controls=False,
-                visibility="collapse",
-                width="1vmin",
-                height="1vmin",
-                playing=AudioPlayingState.panel_win_playing.bool(),
-                on_ended=AudioPlayingState.switch_panel_win(),
+            rx.foreach(
+                GameState.audiofiles,
+                lambda i, m: rx.script(f"""
+    let playAudio{i[0]} = () => {{
+        let audioSrc = "{i[1]}"
+        let audio = new Audio(audioSrc)
+        audio.play()
+    }}
+    """
+                ),
             ),
-            rx.audio(
-                url="/success.mp3",
-                controls=False,
-                visibility="collapse",
-                width="1vmin",
-                height="1vmin",
-                playing=AudioPlayingState.success_playing.bool(),
-                on_ended=AudioPlayingState.switch_success(),
-            ),
-            rx.audio(
-                url="/failure.mp3",
-                controls=False,
-                visibility="collapse",
-                width="1vmin",
-                height="1vmin",
-                playing=AudioPlayingState.failure_playing.bool(),
-                on_ended=AudioPlayingState.switch_failure(),
-            ),
-            rx.audio(
-                url="/vtrq.mp3",
-                controls=False,
-                visibility="collapse",
-                width="1vmin",
-                height="1vmin",
-                playing=AudioPlayingState.vtrq_playing.bool(),
-                on_ended=AudioPlayingState.switch_vtrq(),
-            ),
-        ),
-        rx.foreach(
-            GameState.audiofiles,
-            lambda i, m: rx.script(f"""
-let playAudio{i[0]} = () => {{
-    let audioSrc = "{i[1]}"
-    let audio = new Audio(audioSrc)
-    audio.play()
-}}
-"""
-            ),
-        ),
-        justify="end",
-        spacing="3",
-        on_mount=[
-            GameState.delete_oldcsvs,
-            GameState.delete_oldmp4s,
-        ],
+            justify="end",
+            spacing="3",
+            on_mount=[
+                GameState.delete_oldcsvs,
+                GameState.delete_oldmp4s,
+            ],
     )
 
 app = rx.App(
