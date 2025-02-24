@@ -1138,6 +1138,7 @@ def lateral_menu():
 
 def index() -> rx.Component:
     return rx.vstack(
+        logindialog(),
         lateral_menu(),
         rx.scroll_area(
             rx.hstack(
