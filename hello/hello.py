@@ -139,11 +139,13 @@ class GameState(rx.State):
         CHANCE: "#FFFF00FF",
     } | game_state.game.get_player_colors()
 
-    audiofiles = {
-        EMPTY: "gray.mp3", 
-        WALL: "gray.mp3", 
-        FIRST: "gray.mp3", 
-        } | {i: f"color{i}.mp3" for i in players}
+    # audiofiles: dict[int, str] = {
+    #     EMPTY: "gray.mp3", 
+    #     WALL: "gray.mp3", 
+    #     FIRST: "gray.mp3", 
+    #     } | {i: f"color{i}.mp3" for i in players}
+
+    audiofiles: dict[int, str] = {i: f"color{i}.mp3" for i in players}
 
     game_id: int = game_state.game.get_game_id()
 
@@ -234,8 +236,8 @@ class GameState(rx.State):
     # 25
     denied_panels = [True for _ in range(n_panels)]
 
-    audios = ["" for _ in range(N_AUDIOS)]
-    playing = [False for _ in range(N_AUDIOS)]
+    # audios = ["" for _ in range(N_AUDIOS)]
+    # playing = [False for _ in range(N_AUDIOS)]
 
     atchance_chime_playing: bool = False
     # atchance_deden_playing: bool = False
@@ -307,9 +309,9 @@ class GameState(rx.State):
             self.panel_colors[i] = self.colors[panel]
         for i in range(self.n_panels):
             self.denied_panels[i] = True
-        for i in range(N_AUDIOS):
-            self.audios[i] = ""
-            self.playing[i] = False
+        # for i in range(N_AUDIOS):
+        #     self.audios[i] = ""
+        #     self.playing[i] = False
         self.player = EMPTY
         self.winner = EMPTY
         self.deny_player_button = False
@@ -354,8 +356,8 @@ class GameState(rx.State):
             selectable_panels = self.game_state.game.get_selectable_panels(p)
             for i in selectable_panels:
                 self.denied_panels[i] = False
-            for i in range(N_AUDIOS):
-                self.audios[i] = self.audiofiles[self.player]
+            # for i in range(N_AUDIOS):
+            #     self.audios[i] = self.audiofiles[self.player]
             # get selectable panels from game
             print("from set_player: selectable panels:", 
                   [int(i + 1) for i in selectable_panels])
@@ -394,96 +396,99 @@ class GameState(rx.State):
         
     @rx.event
     async def set_panel(self, panel_idx):
-        if self.player not in self.players:
-            return
+        async with self:
+            if self.player not in self.players:
+                return
 
-        elif self.set_at_chance:
-            print("atchance")
-            for i in range(self.n_panels):
-                self.denied_panels[i] = True
-            yield
-            self.panels[panel_idx] = CHANCE
-            self.game_state.game.set_at_chance(panel_idx)
-            for p in self.players:
-                self.points[p] = self.panels.count(p)
-
-            prev_color = self.panel_colors[panel_idx]
-            for _ in range(4):
-                self.panel_colors[panel_idx] = prev_color
+            elif self.set_at_chance:
+                print("atchance")
+                for i in range(self.n_panels):
+                    self.denied_panels[i] = True
                 yield
-                await asyncio.sleep(0.5)
-                self.panel_colors[panel_idx] = self.colors[EMPTY]
-                yield
-                await asyncio.sleep(0.5)
+                self.panels[panel_idx] = CHANCE
+                self.game_state.game.set_at_chance(panel_idx)
+                for p in self.players:
+                    self.points[p] = self.panels.count(p)
 
-            self.panel_colors[panel_idx] = self.colors[CHANCE]
-            self.set_at_chance = False
-
-        else:
-            self.deny_player_button = True
-            for i in range(self.n_panels):
-                self.denied_panels[i] = True
-            yield
-
-            selectable_panels = self.game_state.game.get_selectable_panels(self.player)
-            if panel_idx not in selectable_panels:
-                print("from set_panel: unselectable: ", panel_idx)
-
-            else:
-                is_at_chance = self.game_state.game.is_atchance()
-                panels_to_flip = self.game_state.game.to_get_panels(panel_idx, self.player)
-                for a_i, i in enumerate(panels_to_flip):
-                    self.panels[i] = self.player
-                    self.panel_colors[i] = self.colors[self.player]
-                    self.playing[a_i % N_AUDIOS] = False
-                    yield
-                    self.playing[a_i % N_AUDIOS] = True
-                    for p in self.players:
-                        self.points[p] = self.panels.count(p)
+                prev_color = self.panel_colors[panel_idx]
+                for _ in range(4):
+                    self.panel_colors[panel_idx] = prev_color
                     yield
                     await asyncio.sleep(0.5)
-                    print("changed_panel:", i + 1)
-                    print("from playing:", self.playing)
-                    print("from set_panel:", panel_idx)
-                    print(self.audios)
-                await asyncio.sleep(2.0)
-
-                ## IF NOW IS ATCHANCE, SET CHANCE PANEL
-                if is_at_chance:
-                    for i in range(self.n_panels):
-                        if self.panels[i] != EMPTY:
-                            self.denied_panels[i] = False
+                    self.panel_colors[panel_idx] = self.colors[EMPTY]
                     yield
-                    self.set_at_chance = True
-                    return
-                    #todo
+                    await asyncio.sleep(0.5)
 
-        for i in range(N_AUDIOS):
-            self.playing[i] = False
-        self.player = EMPTY
-        yield
+                self.panel_colors[panel_idx] = self.colors[CHANCE]
+                self.set_at_chance = False
 
-        for i in range(self.n_panels):
-            self.denied_panels[i] = True
-        yield
-        ## IF NEXT IS ATCHANCE, RING BELL
-        if self.game_state.game.is_atchance():
-            # play zingle
-            self.atchance_chime_playing = True
+            else:
+                self.deny_player_button = True
+                for i in range(self.n_panels):
+                    self.denied_panels[i] = True
+                yield
+
+                selectable_panels = self.game_state.game.get_selectable_panels(self.player)
+                if panel_idx not in selectable_panels:
+                    print("from set_panel: unselectable: ", panel_idx)
+
+                else:
+                    is_at_chance = self.game_state.game.is_atchance()
+                    panels_to_flip = self.game_state.game.to_get_panels(panel_idx, self.player)
+                    for a_i, i in enumerate(panels_to_flip):
+                        self.panels[i] = self.player
+                        self.panel_colors[i] = self.colors[self.player]
+                        # self.playing[a_i % N_AUDIOS] = False
+                        # yield
+                        yield rx.call_script(f"playAudio{self.player}()")
+                        print(f"called_script: playAudio{self.player}()")
+                        # self.playing[a_i % N_AUDIOS] = True
+                        for p in self.players:
+                            self.points[p] = self.panels.count(p)
+                        yield
+                        await asyncio.sleep(0.5)
+                        print("changed_panel:", i + 1)
+                        # print("from playing:", self.playing)
+                        print("from set_panel:", panel_idx)
+                        # print(self.audios)
+                    await asyncio.sleep(2.0)
+
+                    ## IF NOW IS ATCHANCE, SET CHANCE PANEL
+                    if is_at_chance:
+                        for i in range(self.n_panels):
+                            if self.panels[i] != EMPTY:
+                                self.denied_panels[i] = False
+                        yield
+                        self.set_at_chance = True
+                        return
+                        #todo
+
+            # for i in range(N_AUDIOS):
+            #     self.playing[i] = False
+            self.player = EMPTY
             yield
-            #### when playing ended, stop playing and show deden button
-            # await asyncio.sleep(7.0)
-            # self.atchance_chime_playing = False
-            # yield
-            # visible button deden
-            # self.visible_deden_button = "visible"
 
-        self.deny_player_button = False
-        yield
+            for i in range(self.n_panels):
+                self.denied_panels[i] = True
+            yield
+            ## IF NEXT IS ATCHANCE, RING BELL
+            if self.game_state.game.is_atchance():
+                # play zingle
+                self.atchance_chime_playing = True
+                yield
+                #### when playing ended, stop playing and show deden button
+                # await asyncio.sleep(7.0)
+                # self.atchance_chime_playing = False
+                # yield
+                # visible button deden
+                # self.visible_deden_button = "visible"
 
-        print(self.game_state.game.get_board_panels)
-        print("from set_panel: current player:", self.player)
-        self.select_choices = sorted(rx.get_upload_dir().glob('*.csv'))
+            self.deny_player_button = False
+            yield
+
+            print(self.game_state.game.get_board_panels)
+            print("from set_panel: current player:", self.player)
+            self.select_choices = sorted(rx.get_upload_dir().glob('*.csv'))
 
 BG_HIDDEN=101
 BG_SHOW=102
@@ -1402,18 +1407,18 @@ def index() -> rx.Component:
             z_index=5,
 
         ),
-        rx.hstack(
-            rx.foreach(
-                GameState.audios,
-                lambda a, i: rx.audio(
-                    url="/" + a.to_string(use_json=False),
-                    controls=False,
-                    visibility="collapse",
-                    width="1vmin",
-                    height="1vmin",
-                    playing=GameState.playing[i].bool(),
-                ),
-            ),
+        rx.vstack(
+            # rx.foreach(
+            #     GameState.audios,
+            #     lambda a, i: rx.audio(
+            #         url="/" + a.to_string(use_json=False),
+            #         controls=False,
+            #         visibility="collapse",
+            #         width="1vmin",
+            #         height="1vmin",
+            #         playing=GameState.playing[i].bool(),
+            #     ),
+            # ),
             rx.audio(
                 url="/atchance_chime.mp3",
                 controls=False,
@@ -1471,6 +1476,17 @@ def index() -> rx.Component:
                 height="1vmin",
                 playing=AudioPlayingState.vtrq_playing.bool(),
                 on_ended=AudioPlayingState.switch_vtrq(),
+            ),
+        ),
+        rx.foreach(
+            GameState.audiofiles,
+            lambda i, m: rx.script(f"""
+let playAudio{i[0]} = () => {{
+    let audioSrc = "{i[1]}"
+    let audio = new Audio(audioSrc)
+    audio.play()
+}}
+"""
             ),
         ),
         justify="end",
