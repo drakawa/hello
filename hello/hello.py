@@ -1205,6 +1205,7 @@ def index() -> rx.Component:
                             disabled=AudioPlayingState.panel_win_playing.bool(),
                             on_change=GameState.select_player_radio,
                             padding="0",
+                            required=True,
                         ),
                         rx.hstack(
                             rx.box(
