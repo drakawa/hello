@@ -210,8 +210,7 @@ class GameState(rx.State):
             return rx.toast.warning("INVALID password.")
 
     selected_value: str = ""
-    select_choices: list[str] = sorted(rx.get_upload_dir().glob('*.csv'),
-                                       key=os.path.getmtime, reverse=True)
+    select_choices: list[str] = sorted(rx.get_upload_dir().glob('*.csv'))
 
     panels = [EMPTY for _ in range(n_panels)]
     points = {p: 0 for p in players}
