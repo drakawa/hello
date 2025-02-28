@@ -10,6 +10,7 @@ import at25
 from at25 import WALL, FIRST, CHANCE, EMPTY, DELETED, DEALER
 import hashlib, secrets
 import yaml
+import zipfile
 
 # def delete_oldcsvs(path_to_save):
 
@@ -726,6 +727,47 @@ class UploadState(rx.State):
     def switch_not_complete_upload(self):
         self.not_complete_upload = not self.not_complete_upload
 
+class DownloadState(rx.State):
+    # dlbutton_is_visible: bool = False
+    csvdir = rx.get_upload_dir()
+    zipname = 'at25_csvs.zip'
+    zippath =  os.path.join(csvdir, zipname)
+
+    # @rx.event
+    # def show_button(self):
+    #     self.dlbutton_is_visible = True
+    
+    # @rx.event
+    # def hide_button(self):
+    #     self.dlbutton_is_visible = False
+
+    @rx.event
+    def create_zipfile(self):
+        csv_files = [
+            os.path.join(self.csvdir, f)
+            for f in os.listdir(self.csvdir)
+            if f.endswith(".csv")
+        ]
+
+        with zipfile.ZipFile(self.zippath, 'w',
+                            compression=zipfile.ZIP_DEFLATED,) as zf:
+            for csvf in csv_files:
+                zf.write(csvf, arcname=os.path.basename(csvf))
+
+        print(f"csvファイルをアーカイブし、{self.zippath}を作成しました。")
+
+    
+    @rx.event
+    def download_zipfile(self):
+        print(f"{self.zippath}をダウンロードします。")
+
+    @rx.event
+    def remove_zipfile(self):
+        if os.path.exists(self.zippath):
+            os.remove(self.zippath)
+            print(f"{self.zippath}を削除しました。")
+
+
 class AhoState(rx.State):
     mes: str = "do noth"
 
@@ -1385,6 +1427,26 @@ def index() -> rx.Component:
                 ),
 
                 rx.text(f"Game ID: {GameState.game_id}", size="1", width="400px"),
+                rx.button(
+                    "csvダウンロード",
+                    on_click=[
+                        DownloadState.remove_zipfile(),
+                        DownloadState.create_zipfile(),
+                        DownloadState.download_zipfile(),
+                        rx.download(url=rx.get_upload_url(DownloadState.zipname)),
+                    ],
+                    opacity=0,
+                    _hover={
+                        "opacity": "1",
+                        "color": "red",
+                        "background-position": "right center",
+                        "background-size": "200%" + " auto",
+                        "-webkit-animation2": "pulse 2s infinite",
+                    },
+                    # opacity=1 if DownloadState.dlbutton_is_visible else 0,
+                    # on_mouse_enter=DownloadState.show_button,
+                    # on_mouse_leave=DownloadState.hide_button,
+                ),
 
             ),
         ),
