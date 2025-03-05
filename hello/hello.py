@@ -653,7 +653,8 @@ def mygamingbgcolor(color):
 
 
 class LoginState(rx.State):
-    PASS_HEX_DIGEST = 'b1fab726a375cb2d0e0c5321d35bbfdae5eb76e6' # 
+    PASS_HEX_DIGEST = "81041095997a9310b09b259480b20d421b98e4e0"
+    # PASS_HEX_DIGEST = 'b1fab726a375cb2d0e0c5321d35bbfdae5eb76e6' # 
     # PASS_HEX_DIGEST = '61eda3174e4614a3f02c467ea444d260192d4f35' # EMPTY PASSWORD
     SALT = 'sa-10!'
     SUCCESS = "Successful Login!"
@@ -818,8 +819,8 @@ def logindialog():
                 rx.hstack(
                     rx.input(
                         name="input",
-                        placeholder="Enter text...",
-                        type="text",
+                        placeholder="Enter password...",
+                        type="password",
                         required=True,
                     ),
                     rx.button("Submit", type="submit"),
